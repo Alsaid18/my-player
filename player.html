@@ -6,136 +6,91 @@
     <title>Video Player</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
     <style>
-        /* === CORE SETUP - DARK BACKGROUND GUARANTEED === */
+        /* === ROBUST CSS FOR FULLSCREEN & DARK BG === */
         :root {
             --primary-accent: #00AFFF;
             --text-secondary: #aaaaaa;
         }
+        /* Force a black background and no weird spacing */
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #0c0c0c; /* Forcing the dark background */
+            background-color: #000000 !important;
             font-family: 'Inter', sans-serif;
             overflow: hidden;
         }
 
-        /* === LOADER - RESTORED FROM OUR WORKING VERSION === */
+        /* The player's container MUST fill the entire iframe */
+        #player-wrapper {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            --plyr-color-main: var(--primary-accent);
+        }
+
+        /* === LOADER - RESTORED & POSITIONED OVER THE TOP === */
         #loader-screen {
             position: absolute; top: 0; left: 0; z-index: 100;
             width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 16px; background-color: #0c0c0c;
-            transition: opacity 0.5s ease-out;
-            opacity: 1;
+            transition: opacity 0.5s ease-out; opacity: 1;
         }
-        #loader-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        #countdown-timer {
-            font-size: 48px; font-weight: 700; color: var(--primary-accent); line-height: 1;
-        }
-        #loading-bar-container {
-            width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px;
-        }
-        #loading-bar {
-            width: 100%; height: 100%;
-            background-image: linear-gradient(90deg, transparent, var(--primary-accent), transparent);
-            background-size: 50% 100%; background-repeat: no-repeat;
-            animation: slide 1.5s linear infinite;
-        }
+        #loader-screen.hidden { opacity: 0; pointer-events: none; }
+        #countdown-timer { font-size: 48px; font-weight: 700; color: var(--primary-accent); line-height: 1; }
+        #loading-bar-container { width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; }
+        #loading-bar { width: 100%; height: 100%; background-image: linear-gradient(90deg, transparent, var(--primary-accent), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: slide 1.5s linear infinite; }
         @keyframes slide { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
-        #loading-text {
-            color: var(--text-secondary); font-size: 16px; font-weight: 500; text-align: center;
-        }
-
-        /* === VIDEO PLAYER WRAPPER === */
-        #player-wrapper {
-            width: 100%; height: 100%;
-            --plyr-color-main: var(--primary-accent);
-        }
+        #loading-text { color: var(--text-secondary); font-size: 16px; font-weight: 500; text-align: center; }
     </style>
 </head>
 <body>
-
-    <!-- This loader covers the whole screen initially -->
     <div id="loader-screen">
         <div id="countdown-timer">10</div>
         <div id="loading-bar-container"><div id="loading-bar"></div></div>
         <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
     </div>
-
-    <!-- The player is underneath the loader -->
     <div id="player-wrapper">
-        <video id="player" playsinline controls muted></video> <!-- Start muted for autoplay -->
+        <video id="player" playsinline controls muted></video>
     </div>
-
     <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
-        // === CONFIGURATION ===
+        // All JavaScript logic is preserved exactly as it was when it was working well.
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv';
-        const MINIMUM_WAIT_TIME_MS = 10000; // 10 seconds
-
-        // === DOM ELEMENTS ===
+        const MINIMUM_WAIT_TIME_MS = 10000;
         const loaderScreen = document.getElementById('loader-screen');
         const countdownTimer = document.getElementById('countdown-timer');
-        const player = new Plyr('#player', { autoplay: true, muted: true });
-
-        // === SMART KEYWORD DETECTION ===
+        const player = new Plyr('#player', { autoplay: true, muted: true, fullscreen: { enabled: true, iosNative: true } });
         const urlParams = new URLSearchParams(window.location.search);
         const THIS_PAGE_JOB_NAME = urlParams.get('video') || 'Default Keyword';
 
-        // === HELPER FUNCTIONS ===
         async function fetchVideoData() {
             try {
-                const response = await fetch(SHEET_CSV_URL);
-                if (!response.ok) throw new Error('Network error');
-                const csvText = await response.text();
-                const row = csvText.split('\n').map(r => r.split(',')).find(cols => cols[0].trim() === THIS_PAGE_JOB_NAME.trim());
+                const response = await fetch(SHEET_CSV_URL); if (!response.ok) throw new Error('Network error');
+                const csvText = await response.text(); const row = csvText.split('\n').map(r => r.split(',')).find(cols => cols[0].trim() === THIS_PAGE_JOB_NAME.trim());
                 if (row && row[1]) return { videoUrl: row[1].trim(), posterUrl: row[2]?.trim() || '' };
-                throw new Error(`Video for "${THIS_PAGE_JOB_NAME}" not found.`);
+                throw new Error(`"${THIS_PAGE_JOB_NAME}" not found.`);
             } catch (error) { throw new Error(error.message); }
         }
 
-        // === THE PLAYBACK FUNCTION WITH AUTOMATIC UNMUTE ===
         function startPlayback() {
-            loaderScreen.classList.add('hidden'); // Hide the loading screen
-            player.play().then(() => {
-                player.muted = false; // Attempt to unmute after play starts
-                console.log("SUCCESS: Video playing and unmuted.");
-            }).catch(error => {
-                console.warn("Playback started, but browser may have blocked unmute. Video might remain silent.", error);
-            });
+            loaderScreen.classList.add('hidden');
+            player.play().then(() => { player.muted = false; }).catch(error => console.warn("Mute block?", error));
         }
 
-        // === THE SUPERIOR LOADING LOGIC FROM YOUR OLD SITE ===
         async function initializeExperience() {
             const videoReadyPromise = new Promise(resolve => player.on('canplay', resolve, { once: true }));
             const timerPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
-
             let count = Math.ceil(MINIMUM_WAIT_TIME_MS / 1000);
             countdownTimer.textContent = count;
-            const countdownInterval = setInterval(() => {
-                count--;
-                countdownTimer.textContent = count > 0 ? count : 1;
-            }, 1000);
-
+            const countdownInterval = setInterval(() => { count--; countdownTimer.textContent = count > 0 ? count : 1; }, 1000);
             try {
-                console.log(`Fetching data for keyword: ${THIS_PAGE_JOB_NAME}`);
                 const { videoUrl, posterUrl } = await fetchVideoData();
                 player.source = { type: 'video', sources: [{ src: videoUrl }], poster: posterUrl };
-                
-                console.log("Waiting for video data and 10s timer...");
                 await Promise.all([videoReadyPromise, timerPromise]);
-                
-                clearInterval(countdownInterval);
-                startPlayback();
+                clearInterval(countdownInterval); startPlayback();
             } catch (error) {
-                clearInterval(countdownInterval);
-                loaderScreen.innerHTML = `<p style="color:#FF5555; font-size: 18px; text-align:center;">Error: ${error.message}</p>`;
+                clearInterval(countdownInterval); loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;">Error: ${error.message}</p>`;
             }
         }
-
-        // === START EVERYTHING ===
         initializeExperience();
     </script>
 </body>
