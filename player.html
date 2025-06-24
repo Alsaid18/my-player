@@ -6,49 +6,85 @@
     <title>Video Player</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
     <style>
+        /* === CORE SETUP - DARK BACKGROUND GUARANTEED === */
         :root {
-            --bg-color: #0c0c0c; --surface-color: #1a1a1a; --primary-accent: #00AFFF;
-            --text-primary: #EDEDED; --text-secondary: #aaaaaa;
+            --primary-accent: #00AFFF;
+            --text-secondary: #aaaaaa;
         }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100vh; background-color: var(--bg-color); font-family: 'Inter', sans-serif; color: var(--text-primary); overflow: hidden; }
-        #main-content-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; }
-        #player-wrapper { position: relative; width: 100%; height: 56.25vw; max-height: 100vh; background-color: #000; flex-shrink: 0; --plyr-color-main: var(--primary-accent); }
-        #content-scroll-area { flex-grow: 1; overflow-y: auto; padding: 24px; }
-        #loading-interface { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px 0; transition: opacity 0.5s ease-out; opacity: 1; }
-        #loading-interface.hidden { opacity: 0; pointer-events: none; height: 0; padding: 0; margin:0; }
-        #countdown-timer { font-size: 48px; font-weight: 700; color: var(--primary-accent); line-height: 1; }
-        #loading-bar-container { width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden; position: relative; }
-        #loading-bar { width: 100%; height: 100%; position: absolute; background-image: linear-gradient(90deg, transparent, var(--primary-accent), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: slide 1.5s linear infinite; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #0c0c0c; /* Forcing the dark background */
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        /* === LOADER - RESTORED FROM OUR WORKING VERSION === */
+        #loader-screen {
+            position: absolute; top: 0; left: 0; z-index: 100;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 16px; background-color: #0c0c0c;
+            transition: opacity 0.5s ease-out;
+            opacity: 1;
+        }
+        #loader-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #countdown-timer {
+            font-size: 48px; font-weight: 700; color: var(--primary-accent); line-height: 1;
+        }
+        #loading-bar-container {
+            width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px;
+        }
+        #loading-bar {
+            width: 100%; height: 100%;
+            background-image: linear-gradient(90deg, transparent, var(--primary-accent), transparent);
+            background-size: 50% 100%; background-repeat: no-repeat;
+            animation: slide 1.5s linear infinite;
+        }
         @keyframes slide { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
-        #loading-text { color: var(--text-secondary); font-size: 16px; font-weight: 500; text-align: center; }
+        #loading-text {
+            color: var(--text-secondary); font-size: 16px; font-weight: 500; text-align: center;
+        }
+
+        /* === VIDEO PLAYER WRAPPER === */
+        #player-wrapper {
+            width: 100%; height: 100%;
+            --plyr-color-main: var(--primary-accent);
+        }
     </style>
 </head>
 <body>
-    <div id="main-content-wrapper">
-        <div id="player-wrapper"><video id="player" playsinline controls autoplay muted></video></div>
-        <div id="content-scroll-area">
-            <div id="loading-interface">
-                <div id="countdown-timer">10</div>
-                <div id="loading-bar-container"><div id="loading-bar"></div></div>
-                <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
-            </div>
-        </div>
+
+    <!-- This loader covers the whole screen initially -->
+    <div id="loader-screen">
+        <div id="countdown-timer">10</div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+        <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
     </div>
+
+    <!-- The player is underneath the loader -->
+    <div id="player-wrapper">
+        <video id="player" playsinline controls muted></video> <!-- Start muted for autoplay -->
+    </div>
+
     <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
+        // === CONFIGURATION ===
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv';
         const MINIMUM_WAIT_TIME_MS = 10000; // 10 seconds
 
-        const loadingInterface = document.getElementById('loading-interface');
+        // === DOM ELEMENTS ===
+        const loaderScreen = document.getElementById('loader-screen');
         const countdownTimer = document.getElementById('countdown-timer');
         const player = new Plyr('#player', { autoplay: true, muted: true });
 
-        // ▼▼▼ THIS IS THE "SMART" PART ▼▼▼
-        // It reads the keyword from this page's own URL (the part after '?video=')
+        // === SMART KEYWORD DETECTION ===
         const urlParams = new URLSearchParams(window.location.search);
         const THIS_PAGE_JOB_NAME = urlParams.get('video') || 'Default Keyword';
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
+        // === HELPER FUNCTIONS ===
         async function fetchVideoData() {
             try {
                 const response = await fetch(SHEET_CSV_URL);
@@ -60,11 +96,18 @@
             } catch (error) { throw new Error(error.message); }
         }
 
+        // === THE PLAYBACK FUNCTION WITH AUTOMATIC UNMUTE ===
         function startPlayback() {
-            loadingInterface.classList.add('hidden');
-            player.play().then(() => { player.muted = false; }).catch(() => {});
+            loaderScreen.classList.add('hidden'); // Hide the loading screen
+            player.play().then(() => {
+                player.muted = false; // Attempt to unmute after play starts
+                console.log("SUCCESS: Video playing and unmuted.");
+            }).catch(error => {
+                console.warn("Playback started, but browser may have blocked unmute. Video might remain silent.", error);
+            });
         }
 
+        // === THE SUPERIOR LOADING LOGIC FROM YOUR OLD SITE ===
         async function initializeExperience() {
             const videoReadyPromise = new Promise(resolve => player.on('canplay', resolve, { once: true }));
             const timerPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
@@ -77,16 +120,22 @@
             }, 1000);
 
             try {
+                console.log(`Fetching data for keyword: ${THIS_PAGE_JOB_NAME}`);
                 const { videoUrl, posterUrl } = await fetchVideoData();
                 player.source = { type: 'video', sources: [{ src: videoUrl }], poster: posterUrl };
+                
+                console.log("Waiting for video data and 10s timer...");
                 await Promise.all([videoReadyPromise, timerPromise]);
+                
                 clearInterval(countdownInterval);
                 startPlayback();
             } catch (error) {
                 clearInterval(countdownInterval);
-                loadingInterface.innerHTML = `<p style="color:#FF5555; text-align:center;">Error: ${error.message}</p>`;
+                loaderScreen.innerHTML = `<p style="color:#FF5555; font-size: 18px; text-align:center;">Error: ${error.message}</p>`;
             }
         }
+
+        // === START EVERYTHING ===
         initializeExperience();
     </script>
 </body>
