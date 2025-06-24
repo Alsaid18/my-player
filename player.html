@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
+    <style>
+        :root {
+            --bg-color: #0c0c0c; --surface-color: #1a1a1a; --primary-accent: #00AFFF;
+            --text-primary: #EDEDED; --text-secondary: #aaaaaa;
+        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100vh; background-color: var(--bg-color); font-family: 'Inter', sans-serif; color: var(--text-primary); overflow: hidden; }
+        #main-content-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #player-wrapper { position: relative; width: 100%; height: 56.25vw; max-height: 100vh; background-color: #000; flex-shrink: 0; --plyr-color-main: var(--primary-accent); }
+        #content-scroll-area { flex-grow: 1; overflow-y: auto; padding: 24px; }
+        #loading-interface { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px 0; transition: opacity 0.5s ease-out; opacity: 1; }
+        #loading-interface.hidden { opacity: 0; pointer-events: none; height: 0; padding: 0; margin:0; }
+        #countdown-timer { font-size: 48px; font-weight: 700; color: var(--primary-accent); line-height: 1; }
+        #loading-bar-container { width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden; position: relative; }
+        #loading-bar { width: 100%; height: 100%; position: absolute; background-image: linear-gradient(90deg, transparent, var(--primary-accent), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: slide 1.5s linear infinite; }
+        @keyframes slide { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
+        #loading-text { color: var(--text-secondary); font-size: 16px; font-weight: 500; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="main-content-wrapper">
+        <div id="player-wrapper"><video id="player" playsinline controls autoplay muted></video></div>
+        <div id="content-scroll-area">
+            <div id="loading-interface">
+                <div id="countdown-timer">10</div>
+                <div id="loading-bar-container"><div id="loading-bar"></div></div>
+                <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
+    <script>
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv';
+        const MINIMUM_WAIT_TIME_MS = 10000; // 10 seconds
+
+        const loadingInterface = document.getElementById('loading-interface');
+        const countdownTimer = document.getElementById('countdown-timer');
+        const player = new Plyr('#player', { autoplay: true, muted: true });
+
+        // ▼▼▼ THIS IS THE "SMART" PART ▼▼▼
+        // It reads the keyword from this page's own URL (the part after '?video=')
+        const urlParams = new URLSearchParams(window.location.search);
+        const THIS_PAGE_JOB_NAME = urlParams.get('video') || 'Default Keyword';
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+        async function fetchVideoData() {
+            try {
+                const response = await fetch(SHEET_CSV_URL);
+                if (!response.ok) throw new Error('Network error');
+                const csvText = await response.text();
+                const row = csvText.split('\n').map(r => r.split(',')).find(cols => cols[0].trim() === THIS_PAGE_JOB_NAME.trim());
+                if (row && row[1]) return { videoUrl: row[1].trim(), posterUrl: row[2]?.trim() || '' };
+                throw new Error(`Video for "${THIS_PAGE_JOB_NAME}" not found.`);
+            } catch (error) { throw new Error(error.message); }
+        }
+
+        function startPlayback() {
+            loadingInterface.classList.add('hidden');
+            player.play().then(() => { player.muted = false; }).catch(() => {});
+        }
+
+        async function initializeExperience() {
+            const videoReadyPromise = new Promise(resolve => player.on('canplay', resolve, { once: true }));
+            const timerPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
+
+            let count = Math.ceil(MINIMUM_WAIT_TIME_MS / 1000);
+            countdownTimer.textContent = count;
+            const countdownInterval = setInterval(() => {
+                count--;
+                countdownTimer.textContent = count > 0 ? count : 1;
+            }, 1000);
+
+            try {
+                const { videoUrl, posterUrl } = await fetchVideoData();
+                player.source = { type: 'video', sources: [{ src: videoUrl }], poster: posterUrl };
+                await Promise.all([videoReadyPromise, timerPromise]);
+                clearInterval(countdownInterval);
+                startPlayback();
+            } catch (error) {
+                clearInterval(countdownInterval);
+                loadingInterface.innerHTML = `<p style="color:#FF5555; text-align:center;">Error: ${error.message}</p>`;
+            }
+        }
+        initializeExperience();
+    </script>
+</body>
+</html>
