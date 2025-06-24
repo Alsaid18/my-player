@@ -6,34 +6,10 @@
     <title>Video Player</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
     <style>
-        /* === ROBUST CSS FOR FULLSCREEN & DARK BG === */
-        :root {
-            --primary-accent: #00AFFF;
-            --text-secondary: #aaaaaa;
-        }
-        /* Force a black background and no weird spacing */
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000000 !important;
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
-
-        /* The player's container MUST fill the entire iframe */
-        #player-wrapper {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            --plyr-color-main: var(--primary-accent);
-        }
-
-        /* === LOADER - RESTORED & POSITIONED OVER THE TOP === */
-        #loader-screen {
-            position: absolute; top: 0; left: 0; z-index: 100;
-            width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 16px; background-color: #0c0c0c;
-            transition: opacity 0.5s ease-out; opacity: 1;
-        }
+        :root { --primary-accent: #00AFFF; --text-secondary: #aaaaaa; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000 !important; font-family: sans-serif; overflow: hidden; }
+        #player-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; --plyr-color-main: var(--primary-accent); }
+        #loader-screen { position: absolute; top: 0; left: 0; z-index: 100; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background-color: #0c0c0c; transition: opacity 0.5s ease-out; opacity: 1; }
         #loader-screen.hidden { opacity: 0; pointer-events: none; }
         #countdown-timer { font-size: 48px; font-weight: 700; color: var(--primary-accent); line-height: 1; }
         #loading-bar-container { width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; }
@@ -53,15 +29,13 @@
     </div>
     <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
-        // All JavaScript logic is preserved exactly as it was when it was working well.
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv';
         const MINIMUM_WAIT_TIME_MS = 10000;
         const loaderScreen = document.getElementById('loader-screen');
         const countdownTimer = document.getElementById('countdown-timer');
-        const player = new Plyr('#player', { autoplay: true, muted: true, fullscreen: { enabled: true, iosNative: true } });
+        const player = new Plyr('#player', { autoplay: true, muted: true });
         const urlParams = new URLSearchParams(window.location.search);
         const THIS_PAGE_JOB_NAME = urlParams.get('video') || 'Default Keyword';
-
         async function fetchVideoData() {
             try {
                 const response = await fetch(SHEET_CSV_URL); if (!response.ok) throw new Error('Network error');
@@ -70,12 +44,10 @@
                 throw new Error(`"${THIS_PAGE_JOB_NAME}" not found.`);
             } catch (error) { throw new Error(error.message); }
         }
-
         function startPlayback() {
             loaderScreen.classList.add('hidden');
             player.play().then(() => { player.muted = false; }).catch(error => console.warn("Mute block?", error));
         }
-
         async function initializeExperience() {
             const videoReadyPromise = new Promise(resolve => player.on('canplay', resolve, { once: true }));
             const timerPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
