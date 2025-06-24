@@ -1,1 +1,125 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Video Player</title><link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" /><style>:root{--primary-accent:#00AFFF;--text-secondary:#aaaaaa}body,html{margin:0;padding:0;width:100%;height:100%;background-color:#000!important;font-family:sans-serif;overflow:hidden}#player-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;--plyr-color-main:var(--primary-accent)}#loader-screen{position:absolute;top:0;left:0;z-index:100;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background-color:#0c0c0c;transition:opacity .5s ease-out;opacity:1}#loader-screen.hidden{opacity:0;pointer-events:none}#countdown-timer{font-size:48px;font-weight:700;color:var(--primary-accent);line-height:1}#loading-bar-container{width:90%;max-width:250px;height:5px;background-color:rgba(255,255,255,.1);border-radius:5px}#loading-bar{width:100%;height:100%;background-image:linear-gradient(90deg,transparent,var(--primary-accent),transparent);background-size:50% 100%;background-repeat:no-repeat;animation:slide 1.5s linear infinite}@keyframes slide{0%{background-position:-150% 0}100%{background-position:250% 0}}#loading-text{color:var(--text-secondary);font-size:16px;font-weight:500;text-align:center}</style></head><body><div id="loader-screen"><div id="countdown-timer">10</div><div id="loading-bar-container"><div id="loading-bar"></div></div><p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p></div><div id="player-wrapper"><video id="player" playsinline controls muted></video></div><script src="https://cdn.plyr.io/3.7.0/plyr.js"></script><script>const SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv",MINIMUM_WAIT_TIME_MS=1e4,loaderScreen=document.getElementById("loader-screen"),countdownTimer=document.getElementById("countdown-timer"),player=new Plyr("#player",{autoplay:!0,muted:!0}),urlParams=new URLSearchParams(window.location.search),THIS_PAGE_JOB_NAME=urlParams.get("video")||"Default Keyword";async function fetchVideoData(){try{const e=await fetch(SHEET_CSV_URL);if(!e.ok)throw new Error("Network error");const t=(await e.text()).split("\n").map(e=>e.split(",")).find(e=>e[0].trim()===THIS_PAGE_JOB_NAME.trim());if(t&&t[1])return{videoUrl:t[1].trim(),posterUrl:t[2]?.trim()||""};throw new Error(`"${THIS_PAGE_JOB_NAME}" not found`)}catch(e){throw new Error(e.message)}}function startPlayback(){loaderScreen.classList.add("hidden"),player.play().then(()=>{player.muted=!1}).catch(e=>console.warn("Mute block?",e))}async function initializeExperience(){const e=new Promise(e=>player.on("canplay",e,{once:!0})),t=new Promise(e=>setTimeout(e,MINIMUM_WAIT_TIME_MS));let o=Math.ceil(MINIMUM_WAIT_TIME_MS/1e3);countdownTimer.textContent=o;const n=setInterval(()=>{o--,countdownTimer.textContent=o>0?o:1},1e3);try{const{videoUrl:r,posterUrl:s}=await fetchVideoData();player.source={type:"video",sources:[{src:r}],poster:s},await Promise.all([e,t]),clearInterval(n),startPlayback()}catch(r){clearInterval(n),loaderScreen.innerHTML=`<p style="color:#FF5555;font-size:18px;text-align:center;">Error: ${r.message}`}}initializeExperience();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
+    <style>
+        /* === CORE SETUP === */
+        :root {
+            --primary-accent: #00AFFF;
+            --text-secondary: #aaaaaa;
+            --bg-color: #0c0c0c;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+
+        /* === NEW: PAGE LAYOUT TO CENTER THE PLAYER === */
+        .page-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+            padding: 20px; /* Adds a small margin around the player */
+            box-sizing: border-box;
+        }
+
+        /* === NEW: PLAYER WRAPPER FOR NORMAL SIZE === */
+        #player-wrapper {
+            width: 100%;
+            max-width: 1280px; /* Standard max width for a video player */
+            aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
+            background-color: #000;
+            --plyr-color-main: var(--primary-accent);
+        }
+
+        /* === LOADER - UNCHANGED BUT NOW WORKS WITHIN THE NEW LAYOUT === */
+        #loader-screen {
+            position: fixed; /* Fixed position covers the whole screen regardless of scrolling */
+            top: 0; left: 0; z-index: 100;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 16px; background-color: var(--bg-color);
+            transition: opacity 0.5s ease-out;
+            opacity: 1;
+        }
+        #loader-screen.hidden { opacity: 0; pointer-events: none; }
+        #countdown-timer { font-size: 48px; font-weight: 700; color: var(--primary-accent); }
+        #loading-bar-container { width: 90%; max-width: 250px; height: 5px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; }
+        #loading-bar { width: 100%; height: 100%; background-image: linear-gradient(90deg, transparent, var(--primary-accent), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: slide 1.5s linear infinite; }
+        @keyframes slide { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
+        #loading-text { color: var(--text-secondary); font-size: 16px; text-align: center; }
+    </style>
+</head>
+<body>
+    <!-- The Loader will appear on top of everything -->
+    <div id="loader-screen">
+        <div id="countdown-timer">10</div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+        <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
+    </div>
+
+    <!-- The player now sits nicely in the middle of the page -->
+    <div class="page-container">
+        <div id="player-wrapper">
+            <video id="player" playsinline controls muted></video>
+        </div>
+    </div>
+    
+    <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
+    <script>
+        // THE JAVASCRIPT LOGIC IS UNCHANGED. It already performs all the requested actions.
+        // It's the CSS and HTML structure that we have fixed.
+
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv",
+            MINIMUM_WAIT_TIME_MS = 10000,
+            loaderScreen = document.getElementById("loader-screen"),
+            countdownTimer = document.getElementById("countdown-timer"),
+            // Plyr.js controls autohide by default, which is what we want.
+            // This is the standard behavior you requested.
+            player = new Plyr("#player", { autoplay: !0, muted: !0 }),
+            urlParams = new URLSearchParams(window.location.search),
+            THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Keyword";
+        async function fetchVideoData() {
+            try {
+                const e = await fetch(SHEET_CSV_URL);
+                if (!e.ok) throw new Error("Network error");
+                const t = (await e.text())
+                    .split("\n")
+                    .map((e) => e.split(",")).find((e) => e[0].trim() === THIS_PAGE_JOB_NAME.trim());
+                if (t && t[1]) return { videoUrl: t[1].trim(), posterUrl: t[2]?.trim() || "" };
+                throw new Error(`"${THIS_PAGE_JOB_NAME}" not found`);
+            } catch (e) {
+                throw new Error(e.message);
+            }
+        }
+        function startPlayback() {
+            loaderScreen.classList.add("hidden"),
+            // Auto-play and auto-unmute logic
+            player.play().then(() => { player.muted = !1; }).catch((e) => console.warn("Mute block?", e));
+        }
+        async function initializeExperience() {
+            const e = new Promise((e) => player.on("canplay", e, { once: !0 })),
+                t = new Promise((e) => setTimeout(e, MINIMUM_WAIT_TIME_MS));
+            let o = Math.ceil(MINIMUM_WAIT_TIME_MS / 1e3);
+            countdownTimer.textContent = o;
+            const n = setInterval(() => {
+                o--, (countdownTimer.textContent = o > 0 ? o : 1);
+            }, 1e3);
+            try {
+                const { videoUrl: r, posterUrl: s } = await fetchVideoData();
+                (player.source = { type: "video", sources: [{ src: r }], poster: s }), await Promise.all([e, t]), clearInterval(n), startPlayback();
+            } catch (r) {
+                clearInterval(n), (loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;">Error: ${r.message}</p>`);
+            }
+        }
+        initializeExperience();
+    </script>
+</body>
+</html>
