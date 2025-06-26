@@ -41,15 +41,46 @@
     </style>
 </head>
 <body>
-    <div id="loader-screen"><!-- Loader content... --></div>
+    <div id="loader-screen">
+        <div id="countdown-timer">10</div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+        <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
+    </div>
 
     <div class="page-container">
         <div id="player-wrapper">
             <video id="player" playsinline controls muted></video>
-            <button id="center-play-pause-btn" class="action-btn" aria-label="Play/Pause"><!-- Center button content... --></button>
-            <div id="floating-buttons-container" class="hidden"><!-- Floating buttons... --></div>
+            
+            <button id="center-play-pause-btn" class="action-btn" aria-label="Play/Pause">
+                <svg id="center-play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg>
+                <svg id="center-pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg>
+                <span id="center-play-pause-text"></span>
+            </button>
+
+            <div id="floating-buttons-container" class="hidden">
+                <button id="rotate-btn" class="action-btn floating-btn hidden" aria-label="Toggle Rotation">
+                    <svg viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path></svg>
+                    <span>Rotate</span>
+                </button>
+                <button id="exit-fullscreen-btn" class="action-btn floating-btn" aria-label="Toggle Fullscreen">
+                    <svg viewBox="0 0 24 24"><path d="M5,16h3v3h2v-5H5V16z M8,8H5v2h5V5H8V8z M16,19h2v-3h3v-2h-5V19z M19,8h-3V5h-2v5h5V8z"></path></svg>
+                    <span>Exit</span>
+                </button>
+            </div>
         </div>
-        <div id="custom-controls-wrapper"><!-- Bottom controls... --></div>
+        
+        <div id="custom-controls-wrapper">
+             <button id="play-pause-btn" class="action-btn btn-secondary" aria-label="Play/Pause">
+                <svg id="play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg>
+                <svg id="pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg>
+                <span id="play-pause-text"></span>
+            </button>
+            <button id="fullscreen-btn" class="action-btn btn-primary" aria-label="Toggle Fullscreen">
+                <svg viewBox="0 0 24 24"><path d="M7,14H5v5h5v-2H7V14z M5,10h2V7h3V5H5V10z M17,19h-3v2h5v-5h-2V19z M14,5v2h3v3h2V5H14z"></path></svg>
+                <span>Fullscreen</span>
+            </button>
+        </div>
+        
         <div id="video-info">
             <div id="video-title-container"></div>
             <p id="video-description">[ our serial video watching app is currently unaviable ]</p>
@@ -61,17 +92,26 @@
         // --- CONSTANTS & DOM ELEMENTS ---
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv";
         const MINIMUM_WAIT_TIME_MS = 10000;
+        
+        const loaderScreen = document.getElementById('loader-screen');
+        const countdownTimer = document.getElementById('countdown-timer');
+        const videoTitleContainer = document.getElementById('video-title-container');
+        const playerWrapper = document.getElementById('player-wrapper');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const floatingButtonsContainer = document.getElementById('floating-buttons-container');
+        const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+        const rotateBtn = document.getElementById('rotate-btn');
+        const centerPlayPauseBtn = document.getElementById('center-play-pause-btn');
 
-        // Inject HTML for controls to keep the body clean
-        document.getElementById('loader-screen').innerHTML = `<div id="countdown-timer">10</div><div id="loading-bar-container"><div id="loading-bar"></div></div><p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>`;
-        document.getElementById('center-play-pause-btn').innerHTML = `<svg id="center-play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg><svg id="center-pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg><span id="center-play-pause-text"></span>`;
-        document.getElementById('floating-buttons-container').innerHTML = `<button id="rotate-btn" class="action-btn floating-btn hidden" aria-label="Toggle Rotation"><svg viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path></svg><span>Rotate</span></button><button id="exit-fullscreen-btn" class="action-btn floating-btn" aria-label="Toggle Fullscreen"><svg viewBox="0 0 24 24"><path d="M5,16h3v3h2v-5H5V16z M8,8H5v2h5V5H8V8z M16,19h2v-3h3v-2h-5V19z M19,8h-3V5h-2v5h5V8z"></path></svg><span>Exit</span></button>`;
-        document.getElementById('custom-controls-wrapper').innerHTML = `<button id="play-pause-btn" class="action-btn btn-secondary" aria-label="Play/Pause"><svg id="play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg><svg id="pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg><span id="play-pause-text"></span></button><button id="fullscreen-btn" class="action-btn btn-primary" aria-label="Toggle Fullscreen"><svg viewBox="0 0 24 24"><path d="M7,14H5v5h5v-2H7V14z M5,10h2V7h3V5H5V10z M17,19h-3v2h5v-5h-2V19z M14,5v2h3v3h2V5H14z"></path></svg><span>Fullscreen</span></button>`;
-
-        const { playerWrapper, playPauseBtn, fullscreenBtn, floatingButtonsContainer, exitFullscreenBtn, rotateBtn, centerPlayPauseBtn } = { playerWrapper: document.getElementById('player-wrapper'), playPauseBtn: document.getElementById('play-pause-btn'), fullscreenBtn: document.getElementById('fullscreen-btn'), floatingButtonsContainer: document.getElementById('floating-buttons-container'), exitFullscreenBtn: document.getElementById('exit-fullscreen-btn'), rotateBtn: document.getElementById('rotate-btn'), centerPlayPauseBtn: document.getElementById('center-play-pause-btn') };
-        const playPauseButtons = { bottom: { iconPlay: document.getElementById('play-icon'), iconPause: document.getElementById('pause-icon'), text: document.getElementById('play-pause-text') }, center: { iconPlay: document.getElementById('center-play-icon'), iconPause: document.getElementById('center-pause-icon'), text: document.getElementById('center-play-pause-text') } };
+        const playPauseButtons = {
+            bottom: { iconPlay: document.getElementById('play-icon'), iconPause: document.getElementById('pause-icon'), text: document.getElementById('play-pause-text') },
+            center: { iconPlay: document.getElementById('center-play-icon'), iconPause: document.getElementById('center-pause-icon'), text: document.getElementById('center-play-pause-text') }
+        };
+        
         const player = new Plyr("#player", { autoplay: true, muted: true, controls: ['progress', 'current-time', 'duration', 'mute', 'volume', 'settings'] });
         const urlParams = new URLSearchParams(window.location.search);
+        
         let activityTimer, autoRotateTimer, centerButtonTimer, environment;
 
         // --- CORE FUNCTIONS ---
@@ -111,10 +151,10 @@
                 if (playerWrapper.classList.contains('simulated-fullscreen')) {
                     playerWrapper.classList.remove('simulated-fullscreen');
                     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                    updateFloatingButtons(false);
                 } else if (player.fullscreen.active) {
                     player.fullscreen.exit();
                 }
-                updateFloatingButtons(false);
             } else {
                 if (environment === 'desktop') {
                     player.fullscreen.enter();
@@ -128,8 +168,8 @@
 
         function setupEventListeners() {
             const playerContainer = player.elements.container;
-            playerContainer.addEventListener('mousemove', () => { updateFloatingButtons(); updateCenterButton(); });
-            playerContainer.addEventListener('touchstart', () => { updateFloatingButtons(); updateCenterButton(); }, { passive: true });
+            playerContainer.addEventListener('mousemove', () => { if (isPlayerInFullscreen()) updateFloatingButtons(); updateCenterButton(); });
+            playerContainer.addEventListener('touchstart', () => { if (isPlayerInFullscreen()) updateFloatingButtons(); updateCenterButton(); }, { passive: true });
             
             fullscreenBtn.addEventListener('click', toggleFullscreen);
             exitFullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -153,16 +193,16 @@
             const THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Series";
             const today = new Date();
             const formattedDate = today.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
-            document.getElementById('video-title-container').innerHTML = `<span>${THIS_PAGE_JOB_NAME} আজকের Free পর্ব ❤</span><span id="date-box">${formattedDate}</span>`;
+            videoTitleContainer.innerHTML = `<span>${THIS_PAGE_JOB_NAME} আজকের Free পর্ব ❤</span><span id="date-box">${formattedDate}</span>`;
 
             const videoCanPlayPromise = new Promise(resolve => player.on("canplay", resolve, { once: true }));
             const minimumWaitPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
 
             let countdown = Math.ceil(MINIMUM_WAIT_TIME_MS / 1000);
-            document.getElementById('countdown-timer').textContent = countdown;
+            countdownTimer.textContent = countdown;
             const countdownInterval = setInterval(() => {
                 countdown--;
-                document.getElementById('countdown-timer').textContent = Math.max(1, countdown);
+                countdownTimer.textContent = Math.max(1, countdown);
             }, 1000);
 
             try {
@@ -176,11 +216,11 @@
                 
                 await Promise.all([videoCanPlayPromise, minimumWaitPromise]);
                 clearInterval(countdownInterval);
-                document.getElementById('loader-screen').classList.add("hidden");
+                loaderScreen.classList.add("hidden");
                 player.play().then(() => { player.muted = false; }).catch(()=>{});
             } catch (error) {
                 clearInterval(countdownInterval);
-                document.getElementById('loader-screen').innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;padding:20px;">Error: ${error.message}</p>`;
+                loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;padding:20px;">Error: ${error.message}</p>`;
             }
         }
 
