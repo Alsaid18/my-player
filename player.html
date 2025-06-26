@@ -9,40 +9,89 @@
         /* === CORE SETUP === */
         :root {
             --primary-accent: #00AFFF;
+            --text-primary: #f1f1f1;
             --text-secondary: #aaaaaa;
             --bg-color: #0c0c0c;
+            --bg-secondary-color: #1a1a1a;
         }
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg-color);
-            font-family: sans-serif;
-            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden; /* Prevent scrollbars on the main page */
         }
 
-        /* === NEW: PAGE LAYOUT TO CENTER THE PLAYER === */
+        /* === NEW: ENHANCED PAGE LAYOUT === */
         .page-container {
             display: flex;
+            flex-direction: column; /* Stack player and info vertically */
             justify-content: center;
             align-items: center;
             width: 100%;
             height: 100vh;
-            padding: 20px; /* Adds a small margin around the player */
+            padding: 24px;
             box-sizing: border-box;
+            overflow-y: auto; /* Allow scrolling if content overflows on small screens */
         }
 
-        /* === NEW: PLAYER WRAPPER FOR NORMAL SIZE === */
+        /* === PLAYER WRAPPER - UNCHANGED, STILL GREAT === */
         #player-wrapper {
             width: 100%;
-            max-width: 1280px; /* Standard max width for a video player */
-            aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
+            max-width: 1280px;
+            aspect-ratio: 16 / 9;
             background-color: #000;
             --plyr-color-main: var(--primary-accent);
+            border-radius: 8px; /* Slightly rounded corners for a modern look */
+            overflow: hidden; /* Ensures the video stays within the rounded corners */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Adds depth */
+        }
+        
+        /* === NEW: VIDEO INFO SECTION === */
+        #video-info {
+            width: 100%;
+            max-width: 1280px;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            color: var(--text-primary);
+        }
+        #video-title {
+            font-size: 24px;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+        #video-description {
+            font-size: 16px;
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.5;
         }
 
-        /* === LOADER - UNCHANGED BUT NOW WORKS WITHIN THE NEW LAYOUT === */
+        /* === NEW: RESPONSIVE DESIGN FOR MOBILE === */
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 0; /* Remove padding to maximize space */
+                justify-content: flex-start; /* Align to top on mobile */
+            }
+            #player-wrapper {
+                max-width: 100%; /* Full width on mobile */
+                border-radius: 0; /* Edge-to-edge video */
+                aspect-ratio: auto; /* Let the video determine its height initially */
+                height: 35vh; /* A sensible default height */
+            }
+            #video-info {
+                padding: 16px; /* Add padding back inside the info box */
+            }
+            #video-title {
+                font-size: 20px;
+            }
+            #video-description {
+                font-size: 14px;
+            }
+        }
+
+        /* === LOADER - UNCHANGED === */
         #loader-screen {
-            position: fixed; /* Fixed position covers the whole screen regardless of scrolling */
-            top: 0; left: 0; z-index: 100;
+            position: fixed; top: 0; left: 0; z-index: 100;
             width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 16px; background-color: var(--bg-color);
@@ -58,67 +107,131 @@
     </style>
 </head>
 <body>
-    <!-- The Loader will appear on top of everything -->
     <div id="loader-screen">
         <div id="countdown-timer">10</div>
         <div id="loading-bar-container"><div id="loading-bar"></div></div>
         <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
     </div>
 
-    <!-- The player now sits nicely in the middle of the page -->
     <div class="page-container">
         <div id="player-wrapper">
             <video id="player" playsinline controls muted></video>
+        </div>
+        <!-- NEW: Added video info section -->
+        <div id="video-info">
+            <h1 id="video-title">Loading title...</h1>
+            <p id="video-description">This video is being streamed from a secure source. Enjoy the playback!</p>
         </div>
     </div>
     
     <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
-        // THE JAVASCRIPT LOGIC IS UNCHANGED. It already performs all the requested actions.
-        // It's the CSS and HTML structure that we have fixed.
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv";
+        const MINIMUM_WAIT_TIME_MS = 10000;
 
-        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv",
-            MINIMUM_WAIT_TIME_MS = 10000,
-            loaderScreen = document.getElementById("loader-screen"),
-            countdownTimer = document.getElementById("countdown-timer"),
-            // Plyr.js controls autohide by default, which is what we want.
-            // This is the standard behavior you requested.
-            player = new Plyr("#player", { autoplay: !0, muted: !0 }),
-            urlParams = new URLSearchParams(window.location.search),
-            THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Keyword";
+        // --- Element Selectors ---
+        const loaderScreen = document.getElementById("loader-screen");
+        const countdownTimer = document.getElementById("countdown-timer");
+        const videoTitle = document.getElementById("video-title"); // New selector for the title
+
+        // --- Plyr.js Initialization ---
+        // The "controls" array specifies which buttons to show. The default includes everything
+        // you need like play, volume, settings, and the fullscreen button.
+        const player = new Plyr("#player", { 
+            autoplay: true, 
+            muted: true
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Keyword";
+
+        /**
+         * NEW: Sets up auto-rotation to landscape for mobile devices on fullscreen.
+         * @param {Plyr} playerInstance The initialized Plyr player instance.
+         */
+        function setupMobileRotation(playerInstance) {
+            const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (!isMobile) {
+                console.log("Desktop device detected. Auto-rotation disabled.");
+                return; // Do nothing on non-mobile devices
+            }
+
+            console.log("Mobile device detected. Auto-rotation enabled for fullscreen.");
+
+            playerInstance.on('enterfullscreen', () => {
+                console.log("Entering fullscreen, attempting to lock to landscape.");
+                // Use the Screen Orientation API to lock the screen
+                screen.orientation.lock('landscape').catch(err => {
+                    // This might fail if the browser doesn't support it or if the user
+                    // has a system-level orientation lock, which is fine.
+                    console.warn("Could not lock orientation:", err.message);
+                });
+            });
+
+            playerInstance.on('exitfullscreen', () => {
+                console.log("Exiting fullscreen, unlocking orientation.");
+                // Unlock the orientation when leaving fullscreen
+                screen.orientation.unlock();
+            });
+        }
+        
+        // --- Core Logic (Largely Unchanged) ---
         async function fetchVideoData() {
             try {
-                const e = await fetch(SHEET_CSV_URL);
-                if (!e.ok) throw new Error("Network error");
-                const t = (await e.text())
-                    .split("\n")
-                    .map((e) => e.split(",")).find((e) => e[0].trim() === THIS_PAGE_JOB_NAME.trim());
-                if (t && t[1]) return { videoUrl: t[1].trim(), posterUrl: t[2]?.trim() || "" };
-                throw new Error(`"${THIS_PAGE_JOB_NAME}" not found`);
-            } catch (e) {
-                throw new Error(e.message);
+                const response = await fetch(SHEET_CSV_URL);
+                if (!response.ok) throw new Error("Network error fetching video list");
+                const csvText = await response.text();
+                const videoRow = csvText.split("\n")
+                    .map(line => line.split(","))
+                    .find(row => row[0].trim() === THIS_PAGE_JOB_NAME.trim());
+                if (videoRow && videoRow[1]) {
+                    return { videoUrl: videoRow[1].trim(), posterUrl: videoRow[2]?.trim() || "" };
+                }
+                throw new Error(`Video for "${THIS_PAGE_JOB_NAME}" not found in the sheet.`);
+            } catch (error) {
+                // Re-throw to be caught by the main initializer
+                throw new Error(error.message);
             }
         }
+
         function startPlayback() {
-            loaderScreen.classList.add("hidden"),
+            loaderScreen.classList.add("hidden");
             // Auto-play and auto-unmute logic
-            player.play().then(() => { player.muted = !1; }).catch((e) => console.warn("Mute block?", e));
+            player.play().then(() => {
+                player.muted = false;
+            }).catch((e) => console.warn("Playback with sound was blocked by the browser.", e));
         }
+
         async function initializeExperience() {
-            const e = new Promise((e) => player.on("canplay", e, { once: !0 })),
-                t = new Promise((e) => setTimeout(e, MINIMUM_WAIT_TIME_MS));
-            let o = Math.ceil(MINIMUM_WAIT_TIME_MS / 1e3);
-            countdownTimer.textContent = o;
-            const n = setInterval(() => {
-                o--, (countdownTimer.textContent = o > 0 ? o : 1);
-            }, 1e3);
+            // NEW: Set the video title immediately
+            videoTitle.textContent = THIS_PAGE_JOB_NAME;
+
+            // NEW: Setup the mobile-specific features
+            setupMobileRotation(player);
+
+            const videoCanPlayPromise = new Promise(resolve => player.on("canplay", resolve, { once: true }));
+            const minimumWaitPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
+
+            let countdown = Math.ceil(MINIMUM_WAIT_TIME_MS / 1000);
+            countdownTimer.textContent = countdown;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                countdownTimer.textContent = countdown > 0 ? countdown : 1;
+            }, 1000);
+
             try {
-                const { videoUrl: r, posterUrl: s } = await fetchVideoData();
-                (player.source = { type: "video", sources: [{ src: r }], poster: s }), await Promise.all([e, t]), clearInterval(n), startPlayback();
-            } catch (r) {
-                clearInterval(n), (loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;">Error: ${r.message}</p>`);
+                const { videoUrl, posterUrl } = await fetchVideoData();
+                player.source = { type: "video", sources: [{ src: videoUrl }], poster: posterUrl };
+                await Promise.all([videoCanPlayPromise, minimumWaitPromise]);
+                clearInterval(countdownInterval);
+                startPlayback();
+            } catch (error) {
+                clearInterval(countdownInterval);
+                loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;padding:20px;">Error: ${error.message}</p>`;
             }
         }
+
+        // Start the whole process
         initializeExperience();
     </script>
 </body>
