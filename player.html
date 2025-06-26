@@ -18,75 +18,126 @@
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow: hidden; /* Prevent scrollbars on the main page */
+            overflow: hidden;
         }
 
-        /* === NEW: ENHANCED PAGE LAYOUT === */
+        /* === PAGE LAYOUT === */
         .page-container {
             display: flex;
-            flex-direction: column; /* Stack player and info vertically */
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             width: 100%;
             height: 100vh;
             padding: 24px;
             box-sizing: border-box;
-            overflow-y: auto; /* Allow scrolling if content overflows on small screens */
+            overflow-y: auto;
         }
 
-        /* === PLAYER WRAPPER - UNCHANGED, STILL GREAT === */
+        /* === PLAYER WRAPPER === */
         #player-wrapper {
             width: 100%;
             max-width: 1280px;
             aspect-ratio: 16 / 9;
             background-color: #000;
             --plyr-color-main: var(--primary-accent);
-            border-radius: 8px; /* Slightly rounded corners for a modern look */
-            overflow: hidden; /* Ensures the video stays within the rounded corners */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Adds depth */
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
         
-        /* === NEW: VIDEO INFO SECTION === */
+        /* === NEW: CUSTOM CONTROLS & ANIMATION === */
+        #custom-controls-wrapper {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 1280px;
+            padding: 16px 0;
+            box-sizing: border-box;
+            opacity: 0; /* Initially hidden for animation */
+            animation: slideUpFadeIn 0.5s ease-out forwards;
+            animation-delay: 0.3s; /* Delay to start after loader fades */
+        }
+        .custom-btn {
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background-color: var(--bg-secondary-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .custom-btn:hover {
+            background-color: #2a2a2a;
+            transform: translateY(-2px);
+        }
+        .custom-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* === NEW: STYLED INFO BOX & ANIMATION === */
         #video-info {
             width: 100%;
             max-width: 1280px;
-            padding: 20px 10px;
+            padding: 20px;
             box-sizing: border-box;
             color: var(--text-primary);
+            background-color: var(--bg-secondary-color); /* The box color */
+            border-radius: 8px; /* The curved edges */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            opacity: 0; /* Initially hidden for animation */
+            animation: slideUpFadeIn 0.5s ease-out forwards;
+            animation-delay: 0.4s; /* Delay to start after controls */
         }
         #video-title {
-            font-size: 24px;
-            margin: 0 0 8px 0;
+            font-size: 20px;
+            margin: 0 0 10px 0;
             font-weight: 600;
+            white-space: nowrap; /* Ensures title is on a single line */
+            overflow: hidden; /* Hides any part of the title that doesn't fit */
+            text-overflow: ellipsis; /* Adds '...' if the title is too long */
         }
         #video-description {
-            font-size: 16px;
+            font-size: 15px;
             margin: 0;
             color: var(--text-secondary);
             line-height: 1.5;
         }
-
-        /* === NEW: RESPONSIVE DESIGN FOR MOBILE === */
+        
+        /* === NEW: KEYFRAME ANIMATIONS === */
+        @keyframes slideUpFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* === RESPONSIVE DESIGN FOR MOBILE === */
         @media (max-width: 768px) {
             .page-container {
-                padding: 0; /* Remove padding to maximize space */
-                justify-content: flex-start; /* Align to top on mobile */
+                padding: 0;
+                justify-content: flex-start;
             }
             #player-wrapper {
-                max-width: 100%; /* Full width on mobile */
-                border-radius: 0; /* Edge-to-edge video */
-                aspect-ratio: auto; /* Let the video determine its height initially */
-                height: 35vh; /* A sensible default height */
+                max-width: 100%;
+                border-radius: 0;
+                height: auto; /* Let aspect-ratio handle it */
+                aspect-ratio: 16/9;
             }
-            #video-info {
-                padding: 16px; /* Add padding back inside the info box */
+            #custom-controls-wrapper, #video-info {
+                max-width: 100%;
+                padding-left: 16px;
+                padding-right: 16px;
+                border-radius: 0;
             }
-            #video-title {
-                font-size: 20px;
-            }
-            #video-description {
-                font-size: 14px;
-            }
+            #video-title { font-size: 18px; }
+            #video-description { font-size: 14px; }
         }
 
         /* === LOADER - UNCHANGED === */
@@ -95,8 +146,7 @@
             width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 16px; background-color: var(--bg-color);
-            transition: opacity 0.5s ease-out;
-            opacity: 1;
+            transition: opacity 0.5s ease-out; opacity: 1;
         }
         #loader-screen.hidden { opacity: 0; pointer-events: none; }
         #countdown-timer { font-size: 48px; font-weight: 700; color: var(--primary-accent); }
@@ -117,10 +167,17 @@
         <div id="player-wrapper">
             <video id="player" playsinline controls muted></video>
         </div>
-        <!-- NEW: Added video info section -->
+        
+        <!-- NEW: Custom Controls below the player -->
+        <div id="custom-controls-wrapper">
+            <button id="play-pause-btn" class="custom-btn">Resume</button>
+            <button id="fullscreen-btn" class="custom-btn">Fullscreen</button>
+        </div>
+        
+        <!-- NEW: Info Box with updated text and styling -->
         <div id="video-info">
             <h1 id="video-title">Loading title...</h1>
-            <p id="video-description">This video is being streamed from a secure source. Enjoy the playback!</p>
+            <p id="video-description">[ our serial video watching app is currently unaviable ]</p>
         </div>
     </div>
     
@@ -132,86 +189,92 @@
         // --- Element Selectors ---
         const loaderScreen = document.getElementById("loader-screen");
         const countdownTimer = document.getElementById("countdown-timer");
-        const videoTitle = document.getElementById("video-title"); // New selector for the title
+        const videoTitle = document.getElementById("video-title");
+        const playPauseBtn = document.getElementById("play-pause-btn"); // NEW
+        const fullscreenBtn = document.getElementById("fullscreen-btn"); // NEW
 
         // --- Plyr.js Initialization ---
-        // The "controls" array specifies which buttons to show. The default includes everything
-        // you need like play, volume, settings, and the fullscreen button.
-        const player = new Plyr("#player", { 
-            autoplay: true, 
-            muted: true
-        });
-
+        const player = new Plyr("#player", { autoplay: true, muted: true });
         const urlParams = new URLSearchParams(window.location.search);
         const THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Keyword";
 
+        // --- NEW: Custom Button Logic ---
         /**
-         * NEW: Sets up auto-rotation to landscape for mobile devices on fullscreen.
-         * @param {Plyr} playerInstance The initialized Plyr player instance.
+         * Hooks up the custom buttons to control the Plyr player instance.
          */
+        function setupCustomControls() {
+            // Link buttons to player actions
+            playPauseBtn.addEventListener('click', () => player.togglePlay());
+            fullscreenBtn.addEventListener('click', () => player.fullscreen.toggle());
+
+            // Sync the Play/Pause button text with the player's state
+            player.on('play', () => {
+                playPauseBtn.textContent = 'Pause';
+            });
+            player.on('pause', () => {
+                playPauseBtn.textContent = 'Resume';
+            });
+            // Set initial state correctly since autoplay might be blocked
+            player.on('ready', () => {
+                playPauseBtn.textContent = player.paused ? 'Resume' : 'Pause';
+            });
+        }
+        
+        // --- Mobile-specific functionality ---
         function setupMobileRotation(playerInstance) {
             const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            if (!isMobile) {
-                console.log("Desktop device detected. Auto-rotation disabled.");
-                return; // Do nothing on non-mobile devices
-            }
-
-            console.log("Mobile device detected. Auto-rotation enabled for fullscreen.");
+            if (!isMobile) return;
 
             playerInstance.on('enterfullscreen', () => {
-                console.log("Entering fullscreen, attempting to lock to landscape.");
-                // Use the Screen Orientation API to lock the screen
-                screen.orientation.lock('landscape').catch(err => {
-                    // This might fail if the browser doesn't support it or if the user
-                    // has a system-level orientation lock, which is fine.
-                    console.warn("Could not lock orientation:", err.message);
-                });
+                screen.orientation.lock('landscape').catch(err => console.warn("Could not lock orientation:", err.message));
             });
 
             playerInstance.on('exitfullscreen', () => {
-                console.log("Exiting fullscreen, unlocking orientation.");
-                // Unlock the orientation when leaving fullscreen
                 screen.orientation.unlock();
             });
         }
         
-        // --- Core Logic (Largely Unchanged) ---
+        // --- Core Data & Playback Logic ---
         async function fetchVideoData() {
             try {
                 const response = await fetch(SHEET_CSV_URL);
                 if (!response.ok) throw new Error("Network error fetching video list");
                 const csvText = await response.text();
-                const videoRow = csvText.split("\n")
-                    .map(line => line.split(","))
-                    .find(row => row[0].trim() === THIS_PAGE_JOB_NAME.trim());
+                const videoRow = csvText.split("\n").map(line => line.split(",")).find(row => row[0].trim() === THIS_PAGE_JOB_NAME.trim());
                 if (videoRow && videoRow[1]) {
                     return { videoUrl: videoRow[1].trim(), posterUrl: videoRow[2]?.trim() || "" };
                 }
-                throw new Error(`Video for "${THIS_PAGE_JOB_NAME}" not found in the sheet.`);
+                throw new Error(`Video for "${THIS_PAGE_JOB_NAME}" not found.`);
             } catch (error) {
-                // Re-throw to be caught by the main initializer
                 throw new Error(error.message);
             }
         }
 
         function startPlayback() {
+            // Hide the loader, which will trigger the fade-out transition in CSS
             loaderScreen.classList.add("hidden");
-            // Auto-play and auto-unmute logic
+            // The animations for controls and info box will start automatically via CSS
             player.play().then(() => {
                 player.muted = false;
-            }).catch((e) => console.warn("Playback with sound was blocked by the browser.", e));
+            }).catch((e) => console.warn("Playback with sound was blocked.", e));
         }
 
         async function initializeExperience() {
-            // NEW: Set the video title immediately
-            videoTitle.textContent = THIS_PAGE_JOB_NAME;
+            // --- NEW: Generate and set the dynamic title ---
+            const today = new Date();
+            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = today.toLocaleDateString('en-US', dateOptions);
+            videoTitle.textContent = `[ Today's Full Episode For Free ] ${formattedDate} - ${THIS_PAGE_JOB_NAME}`;
 
-            // NEW: Setup the mobile-specific features
+            // Setup all features
             setupMobileRotation(player);
+            setupCustomControls(); // NEW
 
+            // Create promises for loading conditions
             const videoCanPlayPromise = new Promise(resolve => player.on("canplay", resolve, { once: true }));
             const minimumWaitPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
 
+            // Start countdown timer
             let countdown = Math.ceil(MINIMUM_WAIT_TIME_MS / 1000);
             countdownTimer.textContent = countdown;
             const countdownInterval = setInterval(() => {
@@ -222,7 +285,10 @@
             try {
                 const { videoUrl, posterUrl } = await fetchVideoData();
                 player.source = { type: "video", sources: [{ src: videoUrl }], poster: posterUrl };
+                
+                // Wait for both video data to be ready AND the minimum time to pass
                 await Promise.all([videoCanPlayPromise, minimumWaitPromise]);
+                
                 clearInterval(countdownInterval);
                 startPlayback();
             } catch (error) {
@@ -231,7 +297,6 @@
             }
         }
 
-        // Start the whole process
         initializeExperience();
     </script>
 </body>
