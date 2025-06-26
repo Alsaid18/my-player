@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +9,12 @@
         /* === CORE SETUP === */
         :root {
             --primary-accent: #00AFFF;
+            --primary-accent-darker: #008fcc;
             --text-primary: #f1f1f1;
             --text-secondary: #aaaaaa;
             --bg-color: #0c0c0c;
             --bg-secondary-color: #1a1a1a;
+            --border-color: rgba(255, 255, 255, 0.1);
         }
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -25,8 +27,7 @@
         .page-container {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            align-items: center; /* Center all children horizontally */
             width: 100%;
             height: 100vh;
             padding: 24px;
@@ -41,64 +42,126 @@
             aspect-ratio: 16 / 9;
             background-color: #000;
             --plyr-color-main: var(--primary-accent);
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px; /* Space between player and controls */
         }
         
         /* === NEW: CUSTOM CONTROLS & ANIMATION === */
         #custom-controls-wrapper {
             display: flex;
-            gap: 12px;
+            justify-content: center; /* Horizontally center the buttons */
+            align-items: center; /* Vertically align buttons */
+            gap: 16px;
             width: 100%;
             max-width: 1280px;
-            padding: 16px 0;
             box-sizing: border-box;
             opacity: 0; /* Initially hidden for animation */
             animation: slideUpFadeIn 0.5s ease-out forwards;
             animation-delay: 0.3s; /* Delay to start after loader fades */
+            margin-bottom: 20px; /* Space between controls and title */
         }
-        .custom-btn {
-            padding: 10px 20px;
-            font-size: 15px;
+        
+        .icon-btn, .styled-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .icon-btn:hover, .styled-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .icon-btn:active, .styled-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        
+        /* Play/Pause Button */
+        #play-pause-btn {
+            width: 50px;
+            height: 50px;
+            background-color: var(--bg-secondary-color);
+            border: 1px solid var(--border-color);
+        }
+        #play-pause-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-primary);
+            transition: transform 0.2s ease;
+        }
+        #play-pause-btn:hover svg {
+            fill: var(--primary-accent);
+        }
+
+        /* Fullscreen Button */
+        #fullscreen-btn {
+            padding: 0 24px;
+            height: 50px;
+            gap: 10px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
-            background-color: var(--bg-secondary-color);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.2s ease;
+            background-color: var(--primary-accent);
         }
-        .custom-btn:hover {
-            background-color: #2a2a2a;
-            transform: translateY(-2px);
+        #fullscreen-btn:hover {
+            background-color: var(--primary-accent-darker);
         }
-        .custom-btn:active {
-            transform: translateY(0);
+        #fullscreen-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--text-primary);
+        }
+
+        /* Hide icons using 'display: none' */
+        .hidden-icon {
+            display: none;
         }
         
         /* === NEW: STYLED INFO BOX & ANIMATION === */
         #video-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center title and description */
             width: 100%;
             max-width: 1280px;
             padding: 20px;
             box-sizing: border-box;
             color: var(--text-primary);
-            background-color: var(--bg-secondary-color); /* The box color */
-            border-radius: 8px; /* The curved edges */
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            opacity: 0; /* Initially hidden for animation */
+            background-color: var(--bg-secondary-color);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            opacity: 0;
             animation: slideUpFadeIn 0.5s ease-out forwards;
-            animation-delay: 0.4s; /* Delay to start after controls */
+            animation-delay: 0.4s;
+            text-align: center;
         }
-        #video-title {
-            font-size: 20px;
+        
+        #video-title-container {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 22px;
             margin: 0 0 10px 0;
             font-weight: 600;
-            white-space: nowrap; /* Ensures title is on a single line */
-            overflow: hidden; /* Hides any part of the title that doesn't fit */
-            text-overflow: ellipsis; /* Adds '...' if the title is too long */
         }
+
+        #date-box {
+            background-color: var(--primary-accent);
+            color: var(--bg-color);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         #video-description {
             font-size: 15px;
             margin: 0;
@@ -106,41 +169,29 @@
             line-height: 1.5;
         }
         
-        /* === NEW: KEYFRAME ANIMATIONS === */
+        /* === KEYFRAME ANIMATIONS === */
         @keyframes slideUpFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* === RESPONSIVE DESIGN FOR MOBILE === */
+        /* === RESPONSIVE DESIGN === */
         @media (max-width: 768px) {
             .page-container {
                 padding: 0;
-                justify-content: flex-start;
+                justify-content: flex-start; /* Align content to the top */
             }
-            #player-wrapper {
-                max-width: 100%;
-                border-radius: 0;
-                height: auto; /* Let aspect-ratio handle it */
-                aspect-ratio: 16/9;
-            }
-            #custom-controls-wrapper, #video-info {
-                max-width: 100%;
-                padding-left: 16px;
-                padding-right: 16px;
+            #player-wrapper, #video-info {
                 border-radius: 0;
             }
-            #video-title { font-size: 18px; }
+            #player-wrapper { margin-bottom: 16px; }
+            #custom-controls-wrapper { margin-bottom: 16px; }
+            #video-title-container { font-size: 18px; }
+            #date-box { font-size: 14px; }
             #video-description { font-size: 14px; }
         }
 
-        /* === LOADER - UNCHANGED === */
+        /* === LOADER === */
         #loader-screen {
             position: fixed; top: 0; left: 0; z-index: 100;
             width: 100%; height: 100%;
@@ -157,26 +208,37 @@
     </style>
 </head>
 <body>
+    <!-- LOADER -->
     <div id="loader-screen">
         <div id="countdown-timer">10</div>
         <div id="loading-bar-container"><div id="loading-bar"></div></div>
         <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
     </div>
 
+    <!-- MAIN CONTENT -->
     <div class="page-container">
+        <!-- 1. Video Player -->
         <div id="player-wrapper">
             <video id="player" playsinline controls muted></video>
         </div>
         
-        <!-- NEW: Custom Controls below the player -->
+        <!-- 2. Custom Controls (Centered) -->
         <div id="custom-controls-wrapper">
-            <button id="play-pause-btn" class="custom-btn">Resume</button>
-            <button id="fullscreen-btn" class="custom-btn">Fullscreen</button>
+            <button id="play-pause-btn" class="icon-btn" aria-label="Play/Pause">
+                <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                <svg id="pause-icon" class="hidden-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+            </button>
+            <button id="fullscreen-btn" class="styled-btn">
+                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path></svg>
+                <span>Fullscreen</span>
+            </button>
         </div>
         
-        <!-- NEW: Info Box with updated text and styling -->
+        <!-- 3. Video Info Box -->
         <div id="video-info">
-            <h1 id="video-title">Loading title...</h1>
+            <div id="video-title-container">
+                <!-- Title will be dynamically inserted here -->
+            </div>
             <p id="video-description">[ our serial video watching app is currently unaviable ]</p>
         </div>
     </div>
@@ -189,38 +251,47 @@
         // --- Element Selectors ---
         const loaderScreen = document.getElementById("loader-screen");
         const countdownTimer = document.getElementById("countdown-timer");
-        const videoTitle = document.getElementById("video-title");
-        const playPauseBtn = document.getElementById("play-pause-btn"); // NEW
-        const fullscreenBtn = document.getElementById("fullscreen-btn"); // NEW
+        const videoTitleContainer = document.getElementById("video-title-container");
+        const playPauseBtn = document.getElementById("play-pause-btn");
+        const fullscreenBtn = document.getElementById("fullscreen-btn");
+        const playIcon = document.getElementById("play-icon");
+        const pauseIcon = document.getElementById("pause-icon");
 
         // --- Plyr.js Initialization ---
-        const player = new Plyr("#player", { autoplay: true, muted: true });
+        const player = new Plyr("#player", { autoplay: true, muted: true, controls: ['progress', 'current-time', 'duration', 'mute', 'volume', 'settings'] });
         const urlParams = new URLSearchParams(window.location.search);
-        const THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Keyword";
+        const THIS_PAGE_JOB_NAME = urlParams.get("video") || "Default Series";
 
-        // --- NEW: Custom Button Logic ---
         /**
          * Hooks up the custom buttons to control the Plyr player instance.
          */
         function setupCustomControls() {
-            // Link buttons to player actions
             playPauseBtn.addEventListener('click', () => player.togglePlay());
             fullscreenBtn.addEventListener('click', () => player.fullscreen.toggle());
 
-            // Sync the Play/Pause button text with the player's state
+            // Sync the Play/Pause icon with the player's state
             player.on('play', () => {
-                playPauseBtn.textContent = 'Pause';
+                playIcon.classList.add('hidden-icon');
+                pauseIcon.classList.remove('hidden-icon');
             });
             player.on('pause', () => {
-                playPauseBtn.textContent = 'Resume';
+                pauseIcon.classList.add('hidden-icon');
+                playIcon.classList.remove('hidden-icon');
             });
-            // Set initial state correctly since autoplay might be blocked
             player.on('ready', () => {
-                playPauseBtn.textContent = player.paused ? 'Resume' : 'Pause';
+                if (player.paused) {
+                    pauseIcon.classList.add('hidden-icon');
+                    playIcon.classList.remove('hidden-icon');
+                } else {
+                    playIcon.classList.add('hidden-icon');
+                    pauseIcon.classList.remove('hidden-icon');
+                }
             });
         }
         
-        // --- Mobile-specific functionality ---
+        /**
+         * On mobile, entering fullscreen will attempt to lock orientation to landscape.
+         */
         function setupMobileRotation(playerInstance) {
             const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
             if (!isMobile) return;
@@ -228,49 +299,63 @@
             playerInstance.on('enterfullscreen', () => {
                 screen.orientation.lock('landscape').catch(err => console.warn("Could not lock orientation:", err.message));
             });
-
             playerInstance.on('exitfullscreen', () => {
-                screen.orientation.unlock();
+                screen.orientation.unlock().catch(err => {});
             });
         }
         
-        // --- Core Data & Playback Logic ---
+        /**
+         * Fetches video URL and poster from the public Google Sheet.
+         */
         async function fetchVideoData() {
             try {
                 const response = await fetch(SHEET_CSV_URL);
                 if (!response.ok) throw new Error("Network error fetching video list");
                 const csvText = await response.text();
-                const videoRow = csvText.split("\n").map(line => line.split(",")).find(row => row[0].trim() === THIS_PAGE_JOB_NAME.trim());
+                const videoRow = csvText.split("\n").map(line => line.split(",")).find(row => row[0].trim().toLowerCase() === THIS_PAGE_JOB_NAME.trim().toLowerCase());
                 if (videoRow && videoRow[1]) {
                     return { videoUrl: videoRow[1].trim(), posterUrl: videoRow[2]?.trim() || "" };
                 }
                 throw new Error(`Video for "${THIS_PAGE_JOB_NAME}" not found.`);
             } catch (error) {
+                console.error("Fetch Video Data Error:", error);
                 throw new Error(error.message);
             }
         }
 
         function startPlayback() {
-            // Hide the loader, which will trigger the fade-out transition in CSS
             loaderScreen.classList.add("hidden");
-            // The animations for controls and info box will start automatically via CSS
             player.play().then(() => {
-                player.muted = false;
-            }).catch((e) => console.warn("Playback with sound was blocked.", e));
+                player.muted = false; // Unmute after playback starts
+            }).catch((e) => console.warn("Playback with sound was blocked by the browser.", e));
         }
 
+        /**
+         * Main function to set up the page and start the video experience.
+         */
         async function initializeExperience() {
-            // --- NEW: Generate and set the dynamic title ---
+            // --- Generate and set the dynamic title ---
             const today = new Date();
-            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-            const formattedDate = today.toLocaleDateString('en-US', dateOptions);
-            videoTitle.textContent = `[ Today's Full Episode For Free ] ${formattedDate} - ${THIS_PAGE_JOB_NAME}`;
+            // Using Bengali locale for the date
+            const formattedDate = today.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            // Create title elements
+            const titleText = document.createElement('span');
+            titleText.textContent = `${THIS_PAGE_JOB_NAME} আজকের Free পর্ব ❤`;
+            
+            const dateElement = document.createElement('span');
+            dateElement.id = 'date-box';
+            dateElement.textContent = formattedDate;
+
+            // Clear previous title and append new structure
+            videoTitleContainer.innerHTML = ''; 
+            videoTitleContainer.appendChild(titleText);
+            videoTitleContainer.appendChild(dateElement);
 
             // Setup all features
             setupMobileRotation(player);
-            setupCustomControls(); // NEW
+            setupCustomControls();
 
-            // Create promises for loading conditions
             const videoCanPlayPromise = new Promise(resolve => player.on("canplay", resolve, { once: true }));
             const minimumWaitPromise = new Promise(resolve => setTimeout(resolve, MINIMUM_WAIT_TIME_MS));
 
@@ -279,24 +364,29 @@
             countdownTimer.textContent = countdown;
             const countdownInterval = setInterval(() => {
                 countdown--;
-                countdownTimer.textContent = countdown > 0 ? countdown : 1;
+                if (countdown > 0) {
+                    countdownTimer.textContent = countdown;
+                } else {
+                    countdownTimer.textContent = 1; // Keep it at 1 until it loads
+                    clearInterval(countdownInterval);
+                }
             }, 1000);
 
             try {
                 const { videoUrl, posterUrl } = await fetchVideoData();
                 player.source = { type: "video", sources: [{ src: videoUrl }], poster: posterUrl };
                 
-                // Wait for both video data to be ready AND the minimum time to pass
                 await Promise.all([videoCanPlayPromise, minimumWaitPromise]);
                 
-                clearInterval(countdownInterval);
+                clearInterval(countdownInterval); // Ensure interval is stopped
                 startPlayback();
             } catch (error) {
                 clearInterval(countdownInterval);
-                loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;padding:20px;">Error: ${error.message}</p>`;
+                loaderScreen.innerHTML = `<p style="color:#FF5555;font-size:18px;text-align:center;padding:20px;">ত্রুটি: ${error.message}</p>`;
             }
         }
 
+        // Run the initialization function when the script loads
         initializeExperience();
     </script>
 </body>
