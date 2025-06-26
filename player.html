@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>WatchFreeSerial</title>
+    <title>WatchFreeSerial005</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
     <style>
         :root {
@@ -14,26 +14,32 @@
         }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
         .page-container { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100vh; padding: 24px; box-sizing: border-box; overflow-y: auto; }
-        #player-wrapper { position: relative; width: 100%; max-width: 1280px; aspect-ratio: 16 / 9; background-color: #000; --plyr-color-main: var(--primary-accent); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); margin-bottom: 20px; transition: all 0.3s ease-in-out; }
-        #player-wrapper.simulated-fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; max-width: none; border-radius: 0; z-index: 50; margin-bottom: 0; }
+        #player-wrapper { position: relative; width: 100%; max-width: 1280px; aspect-ratio: 16 / 9; background-color: #000; --plyr-color-main: var(--primary-accent); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        #player-wrapper.simulated-fullscreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; max-width: none; border-radius: 0; z-index: 50; }
         #player-wrapper.simulated-fullscreen.force-rotate { top: 50%; left: 50%; width: 100vh; height: 100vw; transform: translate(-50%, -50%) rotate(90deg); }
+        
         .action-btn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 50px; padding: 0 24px; font-size: 16px; font-weight: 600; color: var(--text-primary); border: none; border-radius: 8px; cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1); }
-        .action-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .action-btn:hover { transform: scale(1.05); }
         .action-btn svg { width: 22px; height: 22px; fill: var(--text-primary); }
         .btn-primary { background-color: var(--primary-accent); }
         .btn-primary:hover { background-color: var(--primary-accent-darker); }
         .btn-secondary { background-color: var(--bg-secondary-color); border: 1px solid var(--border-color); }
         .btn-secondary:hover { background-color: #2a2a2a; }
-        #custom-controls-wrapper { display: flex; justify-content: center; align-items: center; gap: 16px; width: 100%; max-width: 1280px; opacity: 0; animation: slideUpFadeIn 0.5s ease-out forwards; animation-delay: 0.3s; margin-bottom: 20px; }
-        #center-play-pause-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1); z-index: 52; padding: 0 30px; height: 60px; border-radius: 12px; background-color: rgba(20,20,20,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease; }
-        #center-play-pause-btn.visible { opacity: 1; pointer-events: all; transform: translate(-50%, -50%) scale(1.1); }
+
+        #interactive-ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 52; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 25%); }
+        #interactive-ui-container.visible { opacity: 1; pointer-events: auto; }
+        
+        #center-play-pause-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 0 30px; height: 60px; border-radius: 12px; background-color: rgba(20,20,20,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); }
         #center-play-pause-btn svg { width: 28px; height: 28px; }
-        #floating-buttons-container { position: absolute; top: 20px; right: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; opacity: 1; transition: opacity 0.4s ease; }
+
+        #floating-buttons-container { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
         .floating-btn { padding: 0 16px; height: 44px; background-color: rgba(20,20,20,0.5); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
+        
+        #bottom-controls-container { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; align-items: center; gap: 16px; }
+        
         .hidden { display: none !important; }
         @keyframes slideUpFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* === NEW LOADER STYLES === */
         #loader-screen { position: fixed; top: 0; left: 0; z-index: 100; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background-color: var(--bg-color); transition: opacity 0.5s ease-out; opacity: 1; }
         #loader-screen.hidden { opacity: 0; pointer-events: none; }
         #clock-container { position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; }
@@ -45,56 +51,52 @@
         #loading-text { color: var(--text-primary); font-size: 16px; animation: breathe 2s ease-in-out infinite; }
         @keyframes breathe { 0%, 100% { opacity: 0.7; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } }
         
-        #video-info { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 1280px; padding: 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-secondary-color); border-radius: 12px; border: 1px solid var(--border-color); opacity: 0; animation: slideUpFadeIn 0.5s ease-out forwards; animation-delay: 0.4s; }
+        #video-info { margin-top: 24px; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 1280px; padding: 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-secondary-color); border-radius: 12px; border: 1px solid var(--border-color); }
         #video-title-container { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; font-size: 22px; margin: 0 0 10px 0; font-weight: 600; }
         #date-box { background-color: var(--primary-accent); color: var(--bg-color); padding: 6px 14px; border-radius: 6px; font-size: 16px; font-weight: 700; }
         #video-description { font-size: 15px; margin: 0; color: var(--text-secondary); line-height: 1.5; }
     </style>
 </head>
 <body>
-    <div id="loader-screen">
-        <div id="clock-container">
-            <svg id="clock-pie" viewBox="0 0 100 100">
-                <circle class="pie-track" cx="50" cy="50" r="45"></circle>
-                <circle class="pie-progress" cx="50" cy="50" r="45"></circle>
-            </svg>
-            <div id="countdown-timer">10</div>
-        </div>
-        <p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>
-    </div>
+    <div id="loader-screen"><!-- Loader content is injected here --></div>
 
-    <div class="page-container"><!-- Page content structure... --></div>
+    <div class="page-container">
+        <div id="player-wrapper">
+            <video id="player" playsinline controls muted></video>
+            
+            <div id="interactive-ui-container">
+                <button id="center-play-pause-btn" class="action-btn" aria-label="Play/Pause"></button>
+                <div id="floating-buttons-container"></div>
+                <div id="bottom-controls-container"></div>
+            </div>
+        </div>
+        
+        <div id="video-info">
+            <div id="video-title-container"></div>
+            <p id="video-description">[ our serial video watching app is currently unaviable ]</p>
+        </div>
+    </div>
     
     <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
-        // --- HTML INJECTION FOR CLEAN BODY ---
-        document.querySelector('.page-container').innerHTML = `
-            <div id="player-wrapper">
-                <video id="player" playsinline controls muted></video>
-                <button id="center-play-pause-btn" class="action-btn" aria-label="Play/Pause"></button>
-                <div id="floating-buttons-container" class="hidden"></div>
-            </div>
-            <div id="custom-controls-wrapper"></div>
-            <div id="video-info">
-                <div id="video-title-container"></div>
-                <p id="video-description">[ our serial video watching app is currently unaviable ]</p>
-            </div>`;
+        // --- HTML INJECTION FOR CLEAN BODY & EASY MANAGEMENT ---
+        document.getElementById('loader-screen').innerHTML = `<div id="clock-container"><svg id="clock-pie" viewBox="0 0 100 100"><circle class="pie-track" cx="50" cy="50" r="45"></circle><circle class="pie-progress" cx="50" cy="50" r="45"></circle></svg><div id="countdown-timer">10</div></div><p id="loading-text">আপনার ভিডিও লোড করা হচ্ছে...</p>`;
         document.getElementById('center-play-pause-btn').innerHTML = `<svg id="center-play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg><svg id="center-pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg><span id="center-play-pause-text"></span>`;
-        document.getElementById('floating-buttons-container').innerHTML = `<button id="rotate-btn" class="action-btn floating-btn hidden" aria-label="Toggle Rotation"><svg viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path></svg><span>Rotate</span></button><button id="exit-fullscreen-btn" class="action-btn floating-btn" aria-label="Toggle Fullscreen"><svg viewBox="0 0 24 24"><path d="M5,16h3v3h2v-5H5V16z M8,8H5v2h5V5H8V8z M16,19h2v-3h3v-2h-5V19z M19,8h-3V5h-2v5h5V8z"></path></svg><span>Exit</span></button>`;
-        document.getElementById('custom-controls-wrapper').innerHTML = `<button id="play-pause-btn" class="action-btn btn-secondary" aria-label="Play/Pause"><svg id="play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg><svg id="pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg><span id="play-pause-text"></span></button><button id="fullscreen-btn" class="action-btn btn-primary" aria-label="Toggle Fullscreen"><svg viewBox="0 0 24 24"><path d="M7,14H5v5h5v-2H7V14z M5,10h2V7h3V5H5V10z M17,19h-3v2h5v-5h-2V19z M14,5v2h3v3h2V5H14z"></path></svg><span>Fullscreen</span></button>`;
-
+        document.getElementById('floating-buttons-container').innerHTML = `<button id="rotate-btn" class="action-btn floating-btn" aria-label="Toggle Rotation"><svg viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"></path></svg><span>Rotate</span></button><button id="exit-fullscreen-btn" class="action-btn floating-btn" aria-label="Toggle Fullscreen"><svg viewBox="0 0 24 24"><path d="M5,16h3v3h2v-5H5V16z M8,8H5v2h5V5H8V8z M16,19h2v-3h3v-2h-5V19z M19,8h-3V5h-2v5h5V8z"></path></svg><span>Exit</span></button>`;
+        document.getElementById('bottom-controls-container').innerHTML = `<button id="play-pause-btn" class="action-btn btn-secondary" aria-label="Play/Pause"><svg id="play-icon" viewBox="0 0 24 24"><path d="M8,5v14l11-7L8,5z"></path></svg><svg id="pause-icon" viewBox="0 0 24 24"><path d="M6,19h4V5H6V19z M14,5v14h4V5H14z"></path></svg><span id="play-pause-text"></span></button><button id="fullscreen-btn" class="action-btn btn-primary" aria-label="Toggle Fullscreen"><svg viewBox="0 0 24 24"><path d="M7,14H5v5h5v-2H7V14z M5,10h2V7h3V5H5V10z M17,19h-3v2h5v-5h-2V19z M14,5v2h3v3h2V5H14z"></path></svg><span>Fullscreen</span></button>`;
+        
         // --- CONSTANTS & DOM ELEMENTS ---
         const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmoXqtgtdN3hyUR5W37-hc58bcAKQb7szLAaScIGOzKX54s8PGJriL4yGsGYbc9OAOqItVmHNewm9v/pub?gid=1555217981&single=true&output=csv";
         const MINIMUM_WAIT_TIME_MS = 10000;
         const HIDE_DELAY_MS = 2000;
 
-        const { loaderScreen, countdownTimer, videoTitleContainer, playerWrapper, playPauseBtn, fullscreenBtn, floatingButtonsContainer, exitFullscreenBtn, rotateBtn, centerPlayPauseBtn, pieProgress } = {
-            loaderScreen: document.getElementById('loader-screen'), countdownTimer: document.getElementById('countdown-timer'), videoTitleContainer: document.getElementById('video-title-container'), playerWrapper: document.getElementById('player-wrapper'), playPauseBtn: document.getElementById('play-pause-btn'), fullscreenBtn: document.getElementById('fullscreen-btn'), floatingButtonsContainer: document.getElementById('floating-buttons-container'), exitFullscreenBtn: document.getElementById('exit-fullscreen-btn'), rotateBtn: document.getElementById('rotate-btn'), centerPlayPauseBtn: document.getElementById('center-play-pause-btn'), pieProgress: document.querySelector('.pie-progress')
+        const { loaderScreen, countdownTimer, videoTitleContainer, playerWrapper, playPauseBtn, fullscreenBtn, exitFullscreenBtn, rotateBtn, centerPlayPauseBtn, pieProgress, interactiveUiContainer } = {
+            loaderScreen: document.getElementById('loader-screen'), countdownTimer: document.getElementById('countdown-timer'), videoTitleContainer: document.getElementById('video-title-container'), playerWrapper: document.getElementById('player-wrapper'), playPauseBtn: document.getElementById('play-pause-btn'), fullscreenBtn: document.getElementById('fullscreen-btn'), exitFullscreenBtn: document.getElementById('exit-fullscreen-btn'), rotateBtn: document.getElementById('rotate-btn'), centerPlayPauseBtn: document.getElementById('center-play-pause-btn'), pieProgress: document.querySelector('.pie-progress'), interactiveUiContainer: document.getElementById('interactive-ui-container')
         };
         const playPauseButtons = { bottom: { iconPlay: document.getElementById('play-icon'), iconPause: document.getElementById('pause-icon'), text: document.getElementById('play-pause-text') }, center: { iconPlay: document.getElementById('center-play-icon'), iconPause: document.getElementById('center-pause-icon'), text: document.getElementById('center-play-pause-text') } };
-        const player = new Plyr("#player", { autoplay: true, muted: true, controls: ['progress', 'current-time', 'duration', 'mute', 'volume', 'settings'] });
+        const player = new Plyr("#player", { autoplay: true, muted: true, controls: ['progress'], clickToPlay: false });
         const urlParams = new URLSearchParams(window.location.search);
-        let activityTimer, autoRotateTimer, centerButtonTimer, environment;
+        let activityTimer, autoRotateTimer, environment;
         const pieRadius = pieProgress.r.baseVal.value;
         const pieCircumference = 2 * Math.PI * pieRadius;
         pieProgress.style.strokeDasharray = pieCircumference;
@@ -103,27 +105,47 @@
         const getEnvironment = () => 'ontouchstart' in window || navigator.maxTouchPoints > 0 ? 'mobile' : 'desktop';
         const isPlayerInFullscreen = () => player.fullscreen.active || playerWrapper.classList.contains('simulated-fullscreen');
         
-        function syncAllPlayPauseButtons() { /* ... unchanged ... */ const isPaused = player.paused; Object.values(playPauseButtons).forEach(btn => { btn.iconPlay.classList.toggle('hidden', !isPaused); btn.iconPause.classList.toggle('hidden', isPaused); btn.text.textContent = isPaused ? 'Resume' : 'Pause'; }); }
+        function syncAllPlayPauseButtons() {
+            const isPaused = player.paused;
+            Object.values(playPauseButtons).forEach(btn => {
+                btn.iconPlay.classList.toggle('hidden', !isPaused);
+                btn.iconPause.classList.toggle('hidden', isPaused);
+                btn.text.textContent = isPaused ? 'Resume' : 'Pause';
+            });
+        }
         
-        function updateUIVisibility() {
-            const isVisible = centerPlayPauseBtn.classList.contains('visible');
-            clearTimeout(centerButtonTimer);
+        function toggleUIVisibility() {
+            const isVisible = interactiveUiContainer.classList.contains('visible');
             clearTimeout(activityTimer);
             if (isVisible) {
-                centerPlayPauseBtn.classList.remove('visible');
-                floatingButtonsContainer.classList.add('hidden');
+                interactiveUiContainer.classList.remove('visible');
             } else {
-                centerPlayPauseBtn.classList.add('visible');
-                if (isPlayerInFullscreen()) floatingButtonsContainer.classList.remove('hidden');
-                centerButtonTimer = setTimeout(() => centerPlayPauseBtn.classList.remove('visible'), HIDE_DELAY_MS);
-                activityTimer = setTimeout(() => floatingButtonsContainer.classList.add('hidden'), HIDE_DELAY_MS);
+                interactiveUiContainer.classList.add('visible');
+                activityTimer = setTimeout(() => interactiveUiContainer.classList.remove('visible'), HIDE_DELAY_MS);
             }
         }
         
-        function toggleFullscreen() { /* ... unchanged ... */ if (isPlayerInFullscreen()) { if (playerWrapper.classList.contains('simulated-fullscreen')) { playerWrapper.classList.remove('simulated-fullscreen'); if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } else if (player.fullscreen.active) { player.fullscreen.exit(); } floatingButtonsContainer.classList.add('hidden'); } else { if (environment === 'desktop') { player.fullscreen.enter(); } else { playerWrapper.classList.add('simulated-fullscreen'); floatingButtonsContainer.classList.remove('hidden'); autoRotateTimer = setTimeout(() => playerWrapper.classList.add('force-rotate'), 5000); } } }
+        function toggleFullscreen() {
+            if (isPlayerInFullscreen()) {
+                if (playerWrapper.classList.contains('simulated-fullscreen')) {
+                    playerWrapper.classList.remove('simulated-fullscreen');
+                    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                } else if (player.fullscreen.active) {
+                    player.fullscreen.exit();
+                }
+            } else {
+                if (player.paused) player.play(); // Auto-play if paused
+                if (environment === 'desktop') {
+                    player.fullscreen.enter();
+                } else {
+                    playerWrapper.classList.add('simulated-fullscreen');
+                    autoRotateTimer = setTimeout(() => playerWrapper.classList.add('force-rotate'), 5000);
+                }
+            }
+        }
 
         function setupEventListeners() {
-            playerWrapper.addEventListener('click', (event) => { if (event.target === player.elements.container || event.target === playerWrapper) updateUIVisibility(); });
+            playerWrapper.addEventListener('click', (event) => { if (event.target === player.elements.container || event.target === playerWrapper) toggleUIVisibility(); });
             fullscreenBtn.addEventListener('click', toggleFullscreen);
             exitFullscreenBtn.addEventListener('click', toggleFullscreen);
             rotateBtn.addEventListener('click', () => playerWrapper.classList.toggle('force-rotate'));
@@ -132,6 +154,8 @@
             player.on('play', syncAllPlayPauseButtons);
             player.on('pause', syncAllPlayPauseButtons);
             player.on('ready', syncAllPlayPauseButtons);
+            player.on('enterfullscreen', () => rotateBtn.classList.remove('hidden'));
+            player.on('exitfullscreen', () => { playerWrapper.classList.remove('force-rotate'); rotateBtn.classList.add('hidden'); });
         }
 
         // --- INITIALIZATION ---
@@ -153,7 +177,7 @@
 
             const countdownInterval = setInterval(() => {
                 countdown--;
-                countdownTimer.textContent = Math.max(1, countdown);
+                countdownTimer.textContent = Math.max(0, countdown);
                 const progress = (MINIMUM_WAIT_TIME_MS / 1000 - countdown) / (MINIMUM_WAIT_TIME_MS / 1000);
                 pieProgress.style.strokeDashoffset = pieCircumference * (1 - progress);
             }, 1000);
