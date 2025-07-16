@@ -42,7 +42,10 @@
                 loader.innerText = `Error: ${result.error}`;
             }
 
-            // This function uses your personal Helper Script to get the data
+            /**
+             * [THE FINAL, CORRECTED LOGIC]
+             * This function perfectly mimics the steps found in the HTML source.
+             */
             async function getStreamtapeLink(streamtapeUrl) {
                 const proxyUrl = `${YOUR_HELPER_SCRIPT_URL}?url=${encodeURIComponent(streamtapeUrl)}`;
                 
@@ -54,20 +57,33 @@
                     const html = await response.text();
                     if (html.startsWith("Error:")) throw new Error(html);
                     
-                    // The proven logic from the browser extension
-                    const urlMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = (.*?);/);
-                    if (!urlMatch) throw new Error("Could not find the 'norobotlink' element.");
+                    // --- THE REVEALED LOGIC ---
                     
-                    const tokenMatch = urlMatch[1].match(/token=([^&']+)/);
-                    if (!tokenMatch) throw new Error("Could not find the security token.");
+                    // 1. Find the JAVASCRIPT line that *generates* the link, NOT the div itself.
+                    const scriptMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = \'(.*?)\';/);
+                    if (!scriptMatch || !scriptMatch[1]) {
+                        throw new Error("Could not find the link-generating script. Site may have changed.");
+                    }
                     
-                    const fullUrlMatch = html.match(/<div id="ideoooolink" style="display:none;">(.*?)<\/div>/);
-                    if (!fullUrlMatch) throw new Error("Could not find the 'ideoooolink' element.");
+                    // 2. Extract the raw string from the script.
+                    //    It looks like: '//streamtape.com' + ('xcd/get_video?id=...').substring(1).substring(2)
+                    //    We only need the part in parentheses.
+                    const rawUrlPart = scriptMatch[1];
+                    const middlePartMatch = rawUrlPart.match(/\('([^']+)'\)/);
+                    if (!middlePartMatch || !middlePartMatch[1]) {
+                        throw new Error("Could not parse the URL from the script's parentheses.");
+                    }
                     
-                    const urlPartOne = fullUrlMatch[1];
-                    const token = tokenMatch[1];
-                    
-                    const finalUrl = `https:${urlPartOne}&token=${token}`;
+                    // 3. Take the content from the parentheses and apply the exact same .substring() logic.
+                    //    Example: 'xcd/get_video?id=...'
+                    let finalUrlPart = middlePartMatch[1];
+                    //    After .substring(1): 'cd/get_video?id=...'
+                    //    After .substring(2): '/get_video?id=...'
+                    finalUrlPart = finalUrlPart.substring(1).substring(2);
+
+                    // 4. Prepend https://streamtape.com to create the full, working URL.
+                    const finalUrl = `https://streamtape.com${finalUrlPart}`;
+
                     return { success: true, url: finalUrl };
 
                 } catch (error) {
