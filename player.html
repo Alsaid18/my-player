@@ -3,80 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamtape Player Test</title>
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
+    <title>Streamtape Direct Link Generator</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0c0c0c; }
-        .hidden { display: none !important; }
-        #player-wrapper { width: 100%; height: 100%; }
-        #loader { display: flex; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; font-family: sans-serif; color: #fff; font-size: 20px; text-align: center; }
+        :root { --primary-accent: #00AFFF; --bg-color: #0c0c0c; --bg-secondary-color: #1a1a1a; --text-primary: #ffffff; --border-color: rgba(255, 255, 255, 0.1); }
+        body, html { margin: 0; padding: 0; width: 100%; background-color: var(--bg-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--text-primary); }
+        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+        .generator-box { width: 100%; max-width: 700px; padding: 40px; background-color: var(--bg-secondary-color); border: 1px solid var(--border-color); border-radius: 12px; text-align: center; }
+        h1 { font-size: 24px; margin: 0 0 20px 0; }
+        textarea { width: 100%; min-height: 100px; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #444; background-color: #0c0c0c; color: #fff; box-sizing: border-box; margin-bottom: 20px; resize: vertical; }
+        button { width: 100%; padding: 14px; font-size: 18px; font-weight: bold; color: #fff; background-color: var(--primary-accent); border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s ease; margin-bottom: 20px; }
+        button:hover { background-color: #008fcc; }
+        #status-message { font-size: 16px; color: #aaa; min-height: 24px; }
+        .result-container { position: relative; width: 100%; }
+        #copy-button { position: absolute; top: 10px; right: 10px; background-color: #333; color: #fff; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+        #copy-button:hover { opacity: 1; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div id="loader">Contacting Helper...</div>
-    <div id="player-wrapper">
-        <video id="player" playsinline controls></video>
+    <div class="container">
+        <div class="generator-box">
+            <h1>Streamtape Direct Link Generator</h1>
+            <textarea id="url-input" placeholder="Paste one or more Streamtape URLs here, one per line..."></textarea>
+            <button id="get-link-btn">Get Direct Link(s)</button>
+            <p id="status-message">Ready.</p>
+            <div id="result-wrapper" class="hidden">
+                <div class="result-container">
+                    <textarea id="result-output" readonly placeholder="Your direct link will appear here..."></textarea>
+                    <button id="copy-button">Copy</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            // === CONFIGURATION (Hardcoded with your working links) ===
-            const VIDEO_TO_TEST = "https://streamtape.com/v/dpX0Rv4RpDsbR2/Geeta_LL_B_2025-07-16_Episode_603.mp4";
-            const YOUR_HELPER_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd8bolJasXgtvrRNyAgCRM6WrBNbym0YAYacF914wdmSRMAeYTQ-E0AZzt5FEJtUy4/exec";
-            
-            const loader = document.getElementById("loader");
-            const player = new Plyr("#player");
+        document.addEventListener("DOMContentLoaded", () => {
+            // === CONFIGURATION ===
+            const HELPER_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd8bolJasXgtvrRNyAgCRM6WrBNbym0YAYacF914wdmSRMAeYTQ-E0AZzt5FEJtUy4/exec";
 
-            const result = await getStreamtapeLink(VIDEO_TO_TEST);
-            
-            if (result.success) {
-                loader.classList.add("hidden");
-                player.source = {
-                    type: 'video',
-                    sources: [{ src: result.url, type: 'video/mp4' }]
-                };
-                player.play();
-            } else {
-                loader.innerText = `FATAL ERROR: ${result.error}`;
-            }
+            const urlInput = document.getElementById('url-input');
+            const getLinkBtn = document.getElementById('get-link-btn');
+            const statusMessage = document.getElementById('status-message');
+            const resultWrapper = document.getElementById('result-wrapper');
+            const resultOutput = document.getElementById('result-output');
+            const copyButton = document.getElementById('copy-button');
 
-            /**
-             * [FINAL & CORRECT] This function precisely replicates the extension's logic.
-             * It builds the strange but necessary "double token" URL.
-             */
-            async function getStreamtapeLink(streamtapeUrl) {
-                const proxyUrl = `${YOUR_HELPER_SCRIPT_URL}?url=${encodeURIComponent(streamtapeUrl)}`;
+            getLinkBtn.addEventListener("click", async () => {
+                const urls = urlInput.value.split('\n').map(u => u.trim()).filter(Boolean);
+                if (urls.length === 0) {
+                    statusMessage.textContent = "Please paste at least one URL.";
+                    return;
+                }
                 
+                statusMessage.textContent = `Processing ${urls.length} URL(s)...`;
+                getLinkBtn.disabled = true;
+                resultWrapper.classList.add('hidden');
+                let allLinks = [];
+
+                for (const url of urls) {
+                    const result = await getStreamtapeLink(url);
+                    if (result.success) {
+                        allLinks.push(result.url);
+                    } else {
+                        allLinks.push(`ERROR: ${result.error}`);
+                    }
+                }
+                
+                resultOutput.value = allLinks.join('\n');
+                resultWrapper.classList.remove('hidden');
+                statusMessage.textContent = "Done!";
+                getLinkBtn.disabled = false;
+            });
+            
+            copyButton.addEventListener('click', () => {
+                resultOutput.select();
+                navigator.clipboard.writeText(resultOutput.value);
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => copyButton.textContent = 'Copy', 2000);
+            });
+
+            async function getStreamtapeLink(streamtapeUrl) {
+                const proxyUrl = `${HELPER_SCRIPT_URL}?url=${encodeURIComponent(streamtapeUrl)}`;
                 try {
-                    loader.innerText = "Fetching data...";
                     const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error(`Google Helper Script failed.`);
+                    if (!response.ok) throw new Error("Google Helper Script failed.");
                     const html = await response.text();
                     
-                    loader.innerText = "Analyzing response...";
-                    
-                    // Step 1: Find the 'ideoooolink' div, which contains Token A.
                     const fullUrlMatch = html.match(/<div id="ideoooolink" style="display:none;">(.*?)<\/div>/);
-                    if (!fullUrlMatch || !fullUrlMatch[1]) throw new Error("Could not find 'ideoooolink' (Token A's location).");
-                    
-                    const urlPartOne = fullUrlMatch[1]; // Result: '//streamtape.com/get_video?id=...&token=TOKEN_A'
-                    
-                    // Step 2: Find the link-generating script.
+                    if (!fullUrlMatch) throw new Error("ideoooolink not found");
+
                     const scriptMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = (.*?);/);
-                    if (!scriptMatch || !scriptMatch[1]) throw new Error("Could not find the 'norobotlink' script.");
+                    if (!scriptMatch) throw new Error("norobotlink script not found");
                     
-                    // Step 3: Find Token B within that script.
                     const tokenMatch = scriptMatch[1].match(/token=([^&']+)/);
-                    if (!tokenMatch || !tokenMatch[1]) throw new Error("Could not find the security token (Token B).");
-                    
-                    const tokenB = tokenMatch[1];
+                    if (!tokenMatch) throw new Error("token not found in script");
 
-                    // Step 4: Assemble the final URL EXACTLY as the extension does.
-                    // Prepend "https:", take the full string from the div (with Token A),
-                    // and then append "&token=" plus Token B.
-                    const finalUrl = `https:${urlPartOne}&token=${tokenB}`;
-
+                    const finalUrl = `https:${fullUrlMatch[1]}&token=${tokenMatch[1]}`;
                     return { success: true, url: finalUrl };
 
                 } catch (error) {
