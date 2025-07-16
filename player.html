@@ -13,7 +13,7 @@
     </style>
 </head>
 <body>
-    <div id="loader">Contacting Helper Script...</div>
+    <div id="loader">Contacting Helper...</div>
     <div id="player-wrapper">
         <video id="player" playsinline controls></video>
     </div>
@@ -21,11 +21,10 @@
     <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", async () => {
-            // === CONFIGURATION (Hardcoded for this test) ===
+            // === CONFIGURATION (Hardcoded with your working links) ===
             const VIDEO_TO_TEST = "https://streamtape.com/v/dpX0Rv4RpDsbR2/Geeta_LL_B_2025-07-16_Episode_603.mp4";
             const YOUR_HELPER_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd8bolJasXgtvrRNyAgCRM6WrBNbym0YAYacF914wdmSRMAeYTQ-E0AZzt5FEJtUy4/exec";
             
-            // --- Elements ---
             const loader = document.getElementById("loader");
             const player = new Plyr("#player");
 
@@ -39,50 +38,44 @@
                 };
                 player.play();
             } else {
-                loader.innerText = `Error: ${result.error}`;
+                loader.innerText = `FATAL ERROR: ${result.error}`;
             }
 
             /**
-             * [THE FINAL, CORRECTED LOGIC]
-             * This function perfectly mimics the steps found in the HTML source.
+             * [FINAL & CORRECT] This function precisely replicates the extension's logic.
+             * It builds the strange but necessary "double token" URL.
              */
             async function getStreamtapeLink(streamtapeUrl) {
                 const proxyUrl = `${YOUR_HELPER_SCRIPT_URL}?url=${encodeURIComponent(streamtapeUrl)}`;
                 
                 try {
-                    loader.innerText = "Unlocking video link...";
+                    loader.innerText = "Fetching data...";
                     const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error(`Your Google Helper Script failed. Status: ${response.status}`);
-                    
+                    if (!response.ok) throw new Error(`Google Helper Script failed.`);
                     const html = await response.text();
-                    if (html.startsWith("Error:")) throw new Error(html);
                     
-                    // --- THE REVEALED LOGIC ---
+                    loader.innerText = "Analyzing response...";
                     
-                    // 1. Find the JAVASCRIPT line that *generates* the link, NOT the div itself.
-                    const scriptMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = \'(.*?)\';/);
-                    if (!scriptMatch || !scriptMatch[1]) {
-                        throw new Error("Could not find the link-generating script. Site may have changed.");
-                    }
+                    // Step 1: Find the 'ideoooolink' div, which contains Token A.
+                    const fullUrlMatch = html.match(/<div id="ideoooolink" style="display:none;">(.*?)<\/div>/);
+                    if (!fullUrlMatch || !fullUrlMatch[1]) throw new Error("Could not find 'ideoooolink' (Token A's location).");
                     
-                    // 2. Extract the raw string from the script.
-                    //    It looks like: '//streamtape.com' + ('xcd/get_video?id=...').substring(1).substring(2)
-                    //    We only need the part in parentheses.
-                    const rawUrlPart = scriptMatch[1];
-                    const middlePartMatch = rawUrlPart.match(/\('([^']+)'\)/);
-                    if (!middlePartMatch || !middlePartMatch[1]) {
-                        throw new Error("Could not parse the URL from the script's parentheses.");
-                    }
+                    const urlPartOne = fullUrlMatch[1]; // Result: '//streamtape.com/get_video?id=...&token=TOKEN_A'
                     
-                    // 3. Take the content from the parentheses and apply the exact same .substring() logic.
-                    //    Example: 'xcd/get_video?id=...'
-                    let finalUrlPart = middlePartMatch[1];
-                    //    After .substring(1): 'cd/get_video?id=...'
-                    //    After .substring(2): '/get_video?id=...'
-                    finalUrlPart = finalUrlPart.substring(1).substring(2);
+                    // Step 2: Find the link-generating script.
+                    const scriptMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = (.*?);/);
+                    if (!scriptMatch || !scriptMatch[1]) throw new Error("Could not find the 'norobotlink' script.");
+                    
+                    // Step 3: Find Token B within that script.
+                    const tokenMatch = scriptMatch[1].match(/token=([^&']+)/);
+                    if (!tokenMatch || !tokenMatch[1]) throw new Error("Could not find the security token (Token B).");
+                    
+                    const tokenB = tokenMatch[1];
 
-                    // 4. Prepend https://streamtape.com to create the full, working URL.
-                    const finalUrl = `https://streamtape.com${finalUrlPart}`;
+                    // Step 4: Assemble the final URL EXACTLY as the extension does.
+                    // Prepend "https:", take the full string from the div (with Token A),
+                    // and then append "&token=" plus Token B.
+                    const finalUrl = `https:${urlPartOne}&token=${tokenB}`;
 
                     return { success: true, url: finalUrl };
 
