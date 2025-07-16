@@ -2,85 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamtape Direct Link Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Video Player</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.0/plyr.css" />
     <style>
-        :root { --primary-accent: #00AFFF; --bg-color: #0c0c0c; --bg-secondary-color: #1a1a1a; --text-primary: #ffffff; }
-        body, html { margin: 0; padding: 0; width: 100%; background-color: var(--bg-color); font-family: sans-serif; color: var(--text-primary); }
-        .container { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
-        .generator-box { width: 100%; max-width: 700px; padding: 40px; background-color: var(--bg-secondary-color); border-radius: 12px; }
-        h1 { text-align: center; margin: 0 0 20px 0; }
-        textarea { width: 100%; min-height: 80px; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #444; background-color: #0c0c0c; color: #fff; box-sizing: border-box; margin-bottom: 20px; resize: vertical; }
-        button { width: 100%; padding: 14px; font-size: 18px; font-weight: bold; color: #fff; background-color: var(--primary-accent); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        button:hover { background-color: #008fcc; }
-        button:disabled { background-color: #555; cursor: not-allowed; }
-        #status-message { font-size: 16px; color: #aaa; min-height: 24px; text-align: center; }
-        .hidden { display: none; }
+        :root { --primary-accent: #00AFFF; --bg-color: #0c0c0c; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-color); font-family: sans-serif; color: white; }
+        #player-container { width: 100%; height: 100%; }
+        #loader { display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; text-align: center; }
+        .spinner { width: 60px; height: 60px; border: 5px solid rgba(255, 255, 255, 0.2); border-top-color: var(--primary-accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="generator-box">
-            <h1>Direct Link Generator</h1>
-            <textarea id="url-input" placeholder="Paste your Streamtape URL here..."></textarea>
-            <button id="get-link-btn">Get Direct Link</button>
-            <p id="status-message">Ready.</p>
-            <div id="result-wrapper" class="hidden">
-                <textarea id="result-output" readonly></textarea>
-            </div>
-        </div>
+    <div id="loader">
+        <div class="spinner"></div>
+        <p id="loader-message">Initializing Player...</p>
+    </div>
+    <div id="player-container">
+        <video id="player" playsinline controls></video>
     </div>
 
+    <script src="https://cdn.plyr.io/3.7.0/plyr.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // === IMPORTANT: Paste the Web App URL from your deployed Google Script ===
-            const HELPER_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd8bolJasXgtvrRNyAgCRM6WrBNbym0YAYacF914wdmSRMAeYTQ-E0AZzt5FEJtUy4/exec";
+        document.addEventListener("DOMContentLoaded", async () => {
+            // === CONFIGURATION ===
+            // For testing, we are hard-coding the URL. In your real system,
+            // you could get this from your Google Sheet or a URL parameter.
+            const streamtapeUrlToPlay = "https://streamtape.com/v/dpX0Rv4RpDsbR2/Geeta_LL_B_2025-07-16_Episode_603.mp4";
+            
+            // --- Elements ---
+            const loader = document.getElementById("loader");
+            const loaderMessage = document.getElementById("loader-message");
+            const player = new Plyr("#player");
 
-            const urlInput = document.getElementById('url-input');
-            const getLinkBtn = document.getElementById('get-link-btn');
-            const statusMessage = document.getElementById('status-message');
-            const resultWrapper = document.getElementById('result-wrapper');
-            const resultOutput = document.getElementById('result-output');
+            // --- Main Logic ---
+            const result = await getStreamtapeLink(streamtapeUrlToPlay);
+            
+            if (result.success) {
+                // If we get the link, hide the loader and start the video
+                loader.style.display = 'none';
+                player.source = {
+                    type: 'video',
+                    sources: [{ src: result.url, type: 'video/mp4' }]
+                };
+                player.play();
+            } else {
+                // If it fails, display a clear error message.
+                loaderMessage.textContent = `Error: ${result.error}`;
+            }
 
-            urlInput.value = "https://streamtape.com/v/dpX0Rv4RpDsbR2/Geeta_LL_B_2025-07-16_Episode_603.mp4"; // Pre-fill the test URL
-
-            getLinkBtn.addEventListener("click", async () => {
-                const url = urlInput.value.trim();
-                if (!url) { return; }
+            /**
+             * This function uses a public proxy (our "delivery service") to bypass
+             * browser security and then uses the extension's logic to find the link.
+             */
+            async function getStreamtapeLink(streamtapeUrl) {
+                // This free proxy is generally more reliable.
+                const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(streamtapeUrl)}`;
                 
-                statusMessage.textContent = `Asking helper to get page data...`;
-                getLinkBtn.disabled = true;
-                resultWrapper.classList.add('hidden');
-                
-                const proxyUrl = `${HELPER_SCRIPT_URL}?url=${encodeURIComponent(url)}`;
                 try {
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error("Your Helper Script failed or timed out.");
+                    loaderMessage.textContent = "Requesting data via delivery service...";
+                    const response = await fetch(PROXY_URL);
+                    if (response.status !== 200) throw new Error(`The delivery service failed (Status: ${response.status}). It might be temporarily down.`);
                     
-                    statusMessage.textContent = "Analyzing response...";
-                    const html = await response.text();
+                    const data = await response.json();
+                    const html = data.contents;
+                    if (!html) throw new Error("Delivery service returned empty data.");
+                    
+                    loaderMessage.textContent = "Analyzing video data...";
 
+                    // The proven, correct logic from the extension's code
                     const fullUrlMatch = html.match(/<div id="ideoooolink" style="display:none;">(.*?)<\/div>/);
-                    if (!fullUrlMatch) throw new Error("Could not find the first link part (ideoooolink).");
-                    
+                    if (!fullUrlMatch) throw new Error("Could not find video part 1 (ideoooolink).");
+
                     const scriptMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = (.*?);/);
-                    if (!scriptMatch) throw new Error("Could not find the second link part (norobotlink script).");
-
+                    if (!scriptMatch) throw new Error("Could not find video part 2 (norobotlink script).");
+                    
                     const tokenMatch = scriptMatch[1].match(/token=([^&']+)/);
-                    if (!tokenMatch) throw new Error("Could not find the security token in the script.");
+                    if (!tokenMatch) throw new Error("Could not find security token.");
 
+                    // The final, correct "double-token" URL assembly
                     const finalUrl = `https:${fullUrlMatch[1]}&token=${tokenMatch[1]}&dl=1`;
-
-                    statusMessage.textContent = "Success! Link generated.";
-                    resultOutput.value = finalUrl;
-                    resultWrapper.classList.remove('hidden');
+                    return { success: true, url: finalUrl };
 
                 } catch (error) {
-                    statusMessage.textContent = `Error: ${error.message}`;
-                } finally {
-                    getLinkBtn.disabled = false;
+                    return { success: false, error: error.message };
                 }
-            });
+            }
         });
     </script>
 </body>
