@@ -38,9 +38,6 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // === CONFIGURATION ===
-            const HELPER_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd8bolJasXgtvrRNyAgCRM6WrBNbym0YAYacF914wdmSRMAeYTQ-E0AZzt5FEJtUy4/exec";
-
             const urlInput = document.getElementById('url-input');
             const getLinkBtn = document.getElementById('get-link-btn');
             const statusMessage = document.getElementById('status-message');
@@ -65,7 +62,7 @@
                     if (result.success) {
                         allLinks.push(result.url);
                     } else {
-                        allLinks.push(`ERROR: ${result.error}`);
+                        allLinks.push(`ERROR for ${url.substring(0,40)}...: ${result.error}`);
                     }
                 }
                 
@@ -82,23 +79,40 @@
                 setTimeout(() => copyButton.textContent = 'Copy', 2000);
             });
 
+            /**
+             * [FINAL, CORRECTED] This function makes the request from your browser,
+             * bypasses security with a proxy, and perfectly mimics the extension's logic.
+             */
             async function getStreamtapeLink(streamtapeUrl) {
-                const proxyUrl = `${HELPER_SCRIPT_URL}?url=${encodeURIComponent(streamtapeUrl)}`;
+                // This free proxy allows our script to fetch data from Streamtape.
+                const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(streamtapeUrl)}`;
+                
                 try {
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error("Google Helper Script failed.");
-                    const html = await response.text();
+                    statusMessage.textContent = 'Contacting proxy helper...';
+                    const response = await fetch(PROXY_URL);
+                    if (!response.ok) throw new Error("Public proxy service failed.");
                     
+                    const data = await response.json();
+                    const html = data.contents;
+                    if (!html) throw new Error("Proxy did not return HTML content.");
+                    
+                    statusMessage.textContent = 'Analyzing response...';
+
                     const fullUrlMatch = html.match(/<div id="ideoooolink" style="display:none;">(.*?)<\/div>/);
-                    if (!fullUrlMatch) throw new Error("ideoooolink not found");
+                    if (!fullUrlMatch) throw new Error("ideoooolink (Token A) not found.");
 
                     const scriptMatch = html.match(/document\.getElementById\('norobotlink'\)\.innerHTML = (.*?);/);
-                    if (!scriptMatch) throw new Error("norobotlink script not found");
+                    if (!scriptMatch) throw new Error("norobotlink script not found.");
                     
                     const tokenMatch = scriptMatch[1].match(/token=([^&']+)/);
-                    if (!tokenMatch) throw new Error("token not found in script");
+                    if (!tokenMatch) throw new Error("token (Token B) not found.");
+                    
+                    // --- FINAL, CORRECTED URL ASSEMBLY ---
+                    // 1. Correctly prepend "https:" to the string from the div
+                    // 2. Append the second token
+                    // 3. Append the download parameter, as you discovered
+                    const finalUrl = `https:${fullUrlMatch[1]}&token=${tokenMatch[1]}&dl=1`;
 
-                    const finalUrl = `https:${fullUrlMatch[1]}&token=${tokenMatch[1]}`;
                     return { success: true, url: finalUrl };
 
                 } catch (error) {
